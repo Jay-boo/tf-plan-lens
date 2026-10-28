@@ -140,7 +140,8 @@
         {
           "type": "webview",
           "id": "planLens.view",
-          "name": "Plan"
+          "name": "Plan",
+          "when": "planLens.hasTerraform"
         }
       ]
     },

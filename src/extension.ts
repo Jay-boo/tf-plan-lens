@@ -208,6 +208,20 @@ export function activate(ctx: vscode.ExtensionContext): void {
   const tick = setInterval(() => store.plan && store.touch(), 60_000);
   ctx.subscriptions.push({ dispose: () => clearInterval(tick) });
   registerHover(ctx, store);
+
+  // The Plan Lens sidebar (and its activity bar icon) only shows when the workspace has Terraform files.
+  const updateHasTerraform = async () => {
+    const tf = await vscode.workspace.findFiles('**/*.tf', '**/{.terraform,node_modules}/**', 1);
+    await vscode.commands.executeCommand('setContext', 'planLens.hasTerraform', tf.length > 0);
+  };
+  const watcher = vscode.workspace.createFileSystemWatcher('**/*.tf', false, true, false);
+  ctx.subscriptions.push(
+    watcher,
+    watcher.onDidCreate(() => void updateHasTerraform()),
+    watcher.onDidDelete(() => void updateHasTerraform()),
+    vscode.workspace.onDidChangeWorkspaceFolders(() => void updateHasTerraform()),
+  );
+  void updateHasTerraform();
   void discover();
 }
 

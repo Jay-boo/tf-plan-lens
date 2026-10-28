@@ -125,7 +125,130 @@
           "highContrastLight": null
         }
       }
-    ]
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "planLens",
+          "title": "Plan Lens",
+          "icon": "media/activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "planLens": [
+        {
+          "type": "webview",
+          "id": "planLens.view",
+          "name": "Plan"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "planLens.runPlan",
+        "title": "Run plan…",
+        "category": "Plan Lens",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "planLens.loadPlan",
+        "title": "Load plan file…",
+        "category": "Plan Lens",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "planLens.pickEnv",
+        "title": "Pick environment…",
+        "category": "Plan Lens"
+      },
+      {
+        "command": "planLens.clear",
+        "title": "Clear plan",
+        "category": "Plan Lens",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "planLens.openLog",
+        "title": "Open log",
+        "category": "Plan Lens",
+        "icon": "$(output)"
+      },
+      {
+        "command": "planLens.reveal",
+        "title": "Show in plan",
+        "category": "Plan Lens"
+      },
+      {
+        "command": "planLens.copyAddress",
+        "title": "Copy address",
+        "category": "Plan Lens"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "planLens.runPlan",
+          "when": "view == planLens.view",
+          "group": "navigation@1"
+        },
+        {
+          "command": "planLens.loadPlan",
+          "when": "view == planLens.view",
+          "group": "1_plan@1"
+        },
+        {
+          "command": "planLens.pickEnv",
+          "when": "view == planLens.view",
+          "group": "1_plan@2"
+        },
+        {
+          "command": "planLens.clear",
+          "when": "view == planLens.view",
+          "group": "2_misc@1"
+        },
+        {
+          "command": "planLens.openLog",
+          "when": "view == planLens.view",
+          "group": "2_misc@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "planLens.reveal",
+          "when": "false"
+        },
+        {
+          "command": "planLens.copyAddress",
+          "when": "false"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Terraform Plan Lens",
+      "properties": {
+        "planLens.environmentGlob": {
+          "type": "string",
+          "default": "environments/**/terraform.tfvars",
+          "description": "Glob (from the workspace) of the tfvars files that define environments. A backend.conf next to one is used for init."
+        },
+        "planLens.root": {
+          "type": "string",
+          "default": "",
+          "description": "Terraform root folder (absolute, or relative to the first workspace folder). Empty: the parent of the environments folder."
+        },
+        "planLens.terraformPath": {
+          "type": "string",
+          "default": "terraform",
+          "description": "Terraform binary."
+        },
+        "planLens.showUnchanged": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show a faint \"no changes\" hint on blocks the plan leaves alone."
+        }
+      }
+    }
   },
   "scripts": {
     "build": "node esbuild.mjs",

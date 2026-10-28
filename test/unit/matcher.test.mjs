@@ -89,3 +89,21 @@ test('moduleDirOf', () => {
   assert.equal(moduleDirOf(plan, ['unitycatalog', 'inner']), 'modules/shared');
   assert.equal(moduleDirOf(plan, ['remote']), undefined);
 });
+
+test('module source with a trailing slash', () => {
+  const p = parsePlan({ format_version: '1.2', resource_changes: [{ address: 'module.s.t.n', module_address: 'module.s', mode: 'managed', type: 't', name: 'n', change: { actions: ['create'], before: null, after: {} } }],
+    configuration: { root_module: { module_calls: { s: { source: './modules/s/', module: {} } } } } }, { env: '', source: '', loadedAt: 0 });
+  assert.equal(p.moduleDirs.s, 'modules/s');
+  const r = matchPlan(p, [{ path: 'modules/s/main.tf', blocks: [{ kind: 'resource', type: 't', name: 'n', startLine: 0, endLine: 1, headerEnd: 1 }] }]);
+  assert.equal(r.orphans.length, 0);
+});
+
+test('looksLikeOtherRoot', () => {
+  const { looksLikeOtherRoot } = require('../../out-test/model/matcher.js');
+  const mk = (n) => ({ format_version: '1.2', resource_changes: Array.from({ length: n }, (_, i) => ({ address: `t.r${i}`, mode: 'managed', type: 't', name: `r${i}`, change: { actions: ['update'], before: { a: 1 }, after: { a: 2 } } })) });
+  const p = parsePlan(mk(4), { env: '', source: '', loadedAt: 0 });
+  const blocks = (k) => Array.from({ length: k }, (_, i) => ({ kind: 'resource', type: 't', name: `r${i}`, startLine: i * 2, endLine: i * 2 + 1, headerEnd: 1 }));
+  assert.equal(looksLikeOtherRoot(p, matchPlan(p, [{ path: 'main.tf', blocks: blocks(4) }]).orphans), false);
+  assert.equal(looksLikeOtherRoot(p, matchPlan(p, [{ path: 'main.tf', blocks: blocks(1) }]).orphans), true);
+  assert.equal(looksLikeOtherRoot(p, matchPlan(p, [{ path: 'main.tf', blocks: blocks(3) }]).orphans), false);
+});

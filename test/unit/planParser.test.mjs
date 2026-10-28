@@ -94,3 +94,18 @@ test('replace path covers its children', () => {
   const attrs = Object.fromEntries(p.changes[0].attrs.map((a) => [a.path, a.forcesReplace]));
   assert.deepEqual(attrs, { 'triggers_replace[0]': true, input_x: false });
 });
+
+test('nested sensitive under an unknown parent never leaks', () => {
+  const p = parsePlan({
+    format_version: '1.2', resource_changes: [{
+      address: 'x.y', mode: 'managed', type: 'x', name: 'y',
+      change: { actions: ['update'], before: { conn: { password: 'S3CRET', host: 'h' }, tags: { a: '1' } }, after: { tags: { a: '2' } },
+        after_unknown: { conn: true }, before_sensitive: { conn: { password: true } }, after_sensitive: {} },
+    }],
+  }, { env: '', source: '', loadedAt: 0 });
+  const c = p.changes[0];
+  assert.ok(!JSON.stringify(c).includes('S3CRET'));
+  const conn = c.attrs.find((a) => a.path.startsWith('conn'));
+  assert.equal(conn.sensitive, true);
+  assert.equal(c.attrs.find((a) => a.path === 'tags.a').after, '"2"');
+});

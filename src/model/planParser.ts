@@ -66,7 +66,7 @@ function collectModuleDirs(mod: Json, prefix: string[], dir: string, out: Record
     const source = String(call?.source ?? '');
     if (!source.startsWith('./') && !source.startsWith('../')) continue;
     const key = [...prefix, name];
-    const childDir = path.posix.normalize(path.posix.join(dir || '.', source)).replace(/^\.\/?$/, '');
+    const childDir = path.posix.normalize(path.posix.join(dir || '.', source)).replace(/\/+$/, '').replace(/^\.$/, '');
     out[key.join('.')] = childDir;
     collectModuleDirs(call.module, key, childDir, out);
   }
@@ -123,11 +123,13 @@ function diff(ch: Json, forced: Set<string>): AttrChange[] {
     if (!unknown && !sensitive && JSON.stringify(b) === JSON.stringify(a)) return;
     if (sensitive && !unknown && JSON.stringify(b) === JSON.stringify(a)) return;
     const p = joinPath(parts);
+    // A node rendered whole (e.g. an unknown block) is sensitive if anything inside it is.
+    const hidden = sensitive || hasTrue(maskOf(ch.before_sensitive, parts)) || hasTrue(maskOf(ch.after_sensitive, parts));
     out.push({
       path: p,
-      before: sensitive ? '' : render(b),
-      after: sensitive || unknown ? '' : render(a),
-      sensitive,
+      before: hidden ? '' : render(b),
+      after: hidden || unknown ? '' : render(a),
+      sensitive: hidden,
       unknown,
       // A replace path also covers what is inside it: `triggers_replace` forces `triggers_replace[0]`.
       forcesReplace: [...forced].some((f) => p === f || p.startsWith(f + '.') || p.startsWith(f + '[')),
@@ -135,6 +137,11 @@ function diff(ch: Json, forced: Set<string>): AttrChange[] {
   };
   walk(before, after, []);
   return out;
+}
+
+function hasTrue(mask: Json): boolean {
+  if (mask === true) return true;
+  return !!mask && typeof mask === 'object' && Object.values(mask).some(hasTrue);
 }
 
 function maskOf(mask: Json, parts: (string | number)[]): Json {

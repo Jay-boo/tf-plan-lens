@@ -12,6 +12,8 @@
     for (const [k, v] of Object.entries(attrs || {})) {
       if (v === undefined || v === false || v === null) continue;
       if (k === 'class') el.className = v;
+      // Through CSSOM: the CSP blocks style="" attributes, not element.style.
+      else if (k === 'style') el.style.cssText = v;
       else if (k === 'text') el.textContent = v;
       else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
       else el.setAttribute(k, v === true ? '' : v);

@@ -54,13 +54,14 @@ export class Runner {
       let stdout = '';
       let stderr = '';
       const sub = token.onCancellationRequested(() => child.kill());
-      child.stdout.on('data', (d: Buffer) => {
-        const s = d.toString();
+      // Decode as a stream so multi-byte characters split across chunks (é in a tag) stay intact.
+      child.stdout.setEncoding('utf8');
+      child.stderr.setEncoding('utf8');
+      child.stdout.on('data', (s: string) => {
         stdout += s;
         if (!quiet) this.out.append(s);
       });
-      child.stderr.on('data', (d: Buffer) => {
-        const s = d.toString();
+      child.stderr.on('data', (s: string) => {
         stderr += s;
         this.out.append(s);
       });

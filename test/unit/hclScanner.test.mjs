@@ -38,3 +38,13 @@ test('indented header inside another block is ignored', () => {
   const src = 'locals {\n  resource "a" "b" {\n  }\n}\n  resource "c" "d" {\n  }\n';
   assert.deepEqual(brief(scanBlocks(src)), [['resource', 'c', 'd', 4, 5]]);
 });
+
+test('indented closing marker of a plain heredoc', () => {
+  const src = 'resource "x" "a" {\n  v = <<EOT\n  }\n  EOT\n}\nresource "y" "b" {}\n';
+  assert.deepEqual(brief(scanBlocks(src)), [['resource', 'x', 'a', 0, 4], ['resource', 'y', 'b', 5, 5]]);
+});
+
+test('heredoc marker inside a comment is ignored', () => {
+  const src = '# usage: <<EOF\nresource "x" "a" {\n  v = 1 // see <<EOT\n}\nresource "y" "b" {}\n';
+  assert.deepEqual(brief(scanBlocks(src)), [['resource', 'x', 'a', 1, 3], ['resource', 'y', 'b', 4, 4]]);
+});

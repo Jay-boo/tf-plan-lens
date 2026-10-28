@@ -14,7 +14,7 @@ export interface Block {
 
 const RESOURCE = /^\s*(resource|data)\s+"([^"]+)"\s+"([^"]+)"\s*\{/;
 const MODULE = /^\s*module\s+"([^"]+)"\s*\{/;
-const HEREDOC = /<<(-?)([A-Za-z_][A-Za-z0-9_]*)\s*$/;
+const HEREDOC = /^<<(-?)([A-Za-z_][A-Za-z0-9_]*)\s*$/;
 
 export function scanBlocks(text: string): Block[] {
   const lines = text.split(/\r?\n/);
@@ -22,14 +22,15 @@ export function scanBlocks(text: string): Block[] {
   let open: Block | undefined;
   let depth = 0;
   let blockComment = false;
-  let heredoc: { tag: string; indented: boolean } | undefined;
+  let heredoc: { tag: string } | undefined;
   // Inside a string: each entry is the brace depth of an open `${`, the string itself is the last level.
   let interp: number[] | undefined;
 
   for (let ln = 0; ln < lines.length; ln++) {
     const line = lines[ln];
     if (heredoc) {
-      if ((heredoc.indented ? line.trim() : line) === heredoc.tag) heredoc = undefined;
+      // HCL trims whitespace around the closing marker for both <<TAG and <<-TAG.
+      if (line.trim() === heredoc.tag) heredoc = undefined;
       continue;
     }
     if (depth === 0 && !blockComment && !interp) {
@@ -43,7 +44,7 @@ export function scanBlocks(text: string): Block[] {
         blocks.push(open);
       }
     }
-    const hd = !blockComment && !interp ? HEREDOC.exec(line) : null;
+    let hd: RegExpExecArray | null = null;
     for (let i = 0; i < line.length; i++) {
       const c = line[i];
       const n = line[i + 1];
@@ -69,6 +70,8 @@ export function scanBlocks(text: string): Block[] {
         continue;
       }
       if (c === '#' || (c === '/' && n === '/')) break;
+      // A heredoc opener runs to the end of the line; only in code, never in a comment or string.
+      if (c === '<' && n === '<' && (hd = HEREDOC.exec(line.slice(i)))) break;
       if (c === '/' && n === '*') { blockComment = true; i++; continue; }
       if (c === '"') { interp = [-1]; continue; }
       if (c === '{') depth++;
@@ -79,7 +82,7 @@ export function scanBlocks(text: string): Block[] {
     }
     // A string never spans lines in HCL; recover rather than swallowing the file.
     interp = undefined;
-    if (hd) heredoc = { tag: hd[2], indented: hd[1] === '-' };
+    if (hd) heredoc = { tag: hd[2] };
   }
   if (open) open.endLine = lines.length - 1;
   return blocks;

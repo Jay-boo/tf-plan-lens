@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 import { Decorations } from './editor/decorations';
 import { registerHover } from './editor/hover';
 import { Env, envsFromFiles, findRoot } from './model/envs';
+import { looksLikeOtherRoot } from './model/matcher';
 import { parsePlan } from './model/planParser';
 import { RunError, Runner } from './runner';
 import { PlanStore } from './state';
@@ -60,21 +61,23 @@ export function activate(ctx: vscode.ExtensionContext): void {
   }
 
   async function runPlan(envName?: string): Promise<void> {
+    // Claimed before any await, so a double click (or view + title bar) can't start two runs.
     if (store.running) return;
-    const root = await discover();
-    let env = envName ? envs.find((e) => e.name === envName) : store.env;
-    if (!env) env = await pickEnv();
-    if (!env || !root) return;
-    store.env = env;
-    await ctx.workspaceState.update(ENV_KEY, env.name);
-    cancel = new vscode.CancellationTokenSource();
     store.setRunning(true);
+    const cts = new vscode.CancellationTokenSource();
+    cancel = cts;
     try {
+      const root = await discover();
+      let env = envName ? envs.find((e) => e.name === envName) : store.env;
+      if (!env) env = await pickEnv();
+      if (!env || !root) return store.setRunning(false);
+      store.env = env;
+      await ctx.workspaceState.update(ENV_KEY, env.name);
       const json = await vscode.window.withProgress(
         { location: vscode.ProgressLocation.Notification, title: `Plan Lens: terraform plan ${env.name}`, cancellable: true },
         (_p, token) => {
-          token.onCancellationRequested(() => cancel?.cancel());
-          return runner.runPlan(root, env!, cancel!.token);
+          token.onCancellationRequested(() => void cancelRun());
+          return runner.runPlan(root, env!, cts.token);
         },
       );
       const plan = parsePlan(json, { env: env.name, source: 'run', loadedAt: Date.now() });
@@ -83,12 +86,26 @@ export function activate(ctx: vscode.ExtensionContext): void {
     } catch (e) {
       failed(e);
     } finally {
-      cancel?.dispose();
-      cancel = undefined;
+      if (cancel === cts) cancel = undefined;
+      cts.dispose();
     }
   }
 
+  async function cancelRun(): Promise<void> {
+    const cts = cancel;
+    if (!cts) return;
+    // On Windows the kill is a hard TerminateProcess: terraform can't release a remote state lock.
+    if (process.platform === 'win32') {
+      const go = await vscode.window.showWarningMessage(
+        'Stopping terraform now may leave the remote state locked (you would then need terraform force-unlock). Stop anyway?',
+        { modal: true }, 'Stop');
+      if (go !== 'Stop') return;
+    }
+    cts.cancel();
+  }
+
   async function loadPlan(): Promise<void> {
+    if (store.running) return void vscode.window.showInformationMessage('Plan Lens: a plan is running; load the file when it is done.');
     const root = await discover();
     const [file] = (await vscode.window.showOpenDialog({
       canSelectMany: false,
@@ -109,7 +126,18 @@ export function activate(ctx: vscode.ExtensionContext): void {
           throw new RunError(`Could not read this plan file with terraform show (${(e as Error).message}). Run a plan here, or load its JSON (terraform show -json).`, false);
         }
       }
-      await store.setPlan(parsePlan(json, { env: '', source: file.fsPath, loadedAt: Date.now() }), root);
+      const plan = parsePlan(json, { env: '', source: file.fsPath, loadedAt: Date.now() });
+      await store.setPlan(plan, root);
+      if (looksLikeOtherRoot(plan, store.orphans())) {
+        // Most root resources have no block here: the plan is probably for another root (landing_zone/, vms/…).
+        const b = await vscode.window.showWarningMessage(
+          `Plan Lens: this plan doesn't seem to be for ${path.basename(root)}: most of its resources aren't in that folder. Pick the Terraform root it was made for?`,
+          'Pick folder…', 'Keep');
+        if (b === 'Pick folder…') {
+          const [dir] = (await vscode.window.showOpenDialog({ canSelectFolders: true, canSelectFiles: false, openLabel: 'Use as Terraform root', defaultUri: vscode.Uri.file(root) })) ?? [];
+          if (dir) await store.setPlan(plan, dir.fsPath);
+        }
+      }
     } catch (e) {
       failed(e);
     }
@@ -146,7 +174,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
     switch (m.type) {
       case 'run': return void runPlan(m.env);
       case 'load': return void loadPlan();
-      case 'cancel': return cancel?.cancel();
+      case 'cancel': return void cancelRun();
       case 'clear': return store.clear();
       case 'log': return out.show(true);
       case 'pickEnv': return void pickEnv();

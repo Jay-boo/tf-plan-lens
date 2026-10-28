@@ -97,3 +97,14 @@ export function hintFor(mark: BlockMark): string {
       return c.action;
   }
 }
+
+/**
+ * True when most of the plan's root-module resources have no block in the scanned files: the plan was probably made
+ * for another Terraform root (e.g. landing_zone/ rather than the repo root).
+ */
+export function looksLikeOtherRoot(plan: Plan, orphans: Change[]): boolean {
+  const roots = plan.changes.filter((c) => c.modulePath.length === 0 && c.mode === 'managed');
+  if (!roots.length) return false;
+  const lost = orphans.filter((c) => c.modulePath.length === 0 && c.mode === 'managed').length;
+  return lost / roots.length > 0.5;
+}

@@ -28,33 +28,44 @@ const themes = {
 };
 
 const page0 = readFileSync(join(root, 'webview/planView.html'), 'utf8');
+const themeCss = (theme) => `:root{${Object.entries(themes[theme].vars).map(([k, v]) => `--vscode-${k}:${v}`).join(';')};--vscode-font-family:-apple-system,'Segoe UI',system-ui,sans-serif;--vscode-font-size:13px;--vscode-editor-font-family:'Cascadia Code',Menlo,monospace}body{background:${themes[theme].vars['sideBar-background']}}`;
+// Keep the real CSP (file: standing in for the webview's cspSource) so blocked inline styles show up here.
 const html = (theme) => page0
-  .replace(/<meta http-equiv="Content-Security-Policy"[^>]*>/, '')
   .replace('{{codicon}}', 'vendor/codicon.css').replace('{{base}}', 'base.css').replace('{{css}}', 'planView.css')
-  .replace(/<script nonce="\{\{nonce\}\}" src="\{\{js\}\}"><\/script>/, `<script>window.acquireVsCodeApi = () => ({ postMessage: (m) => (window.__posted = [...(window.__posted || []), m]) });</script><script src="planView.js"></script>`)
-  .replace('<html lang="en">', `<html lang="en" style="${Object.entries(themes[theme].vars).map(([k, v]) => `--vscode-${k}:${v}`).join(';')};--vscode-font-family:-apple-system,'Segoe UI',system-ui,sans-serif;--vscode-font-size:13px;--vscode-editor-font-family:'Cascadia Code',Menlo,monospace">`)
-  .replace('<body>', `<body class="${themes[theme].cls}" style="background:${themes[theme].vars['sideBar-background']}">`);
+  .replace('<link rel="stylesheet" href="vendor/codicon.css">', `<link rel="stylesheet" href="__theme-${theme}.css"><link rel="stylesheet" href="vendor/codicon.css">`)
+  .replace('<script nonce="{{nonce}}" src="{{js}}"></script>', `<script nonce="render" src="__stub.js"></script><script nonce="render" src="planView.js"></script>`)
+  .replace(/\{\{cspSource\}\}/g, 'file:').replace(/\{\{nonce\}\}/g, 'render')
+  .replace('<body>', `<body class="${themes[theme].cls}">`);
 
 mkdirSync(join(root, 'out-render'), { recursive: true });
+writeFileSync(join(root, 'webview/__stub.js'), 'window.acquireVsCodeApi = () => ({ postMessage: (m) => (window.__posted = [...(window.__posted || []), m]) });');
 const browser = await chromium.launch();
 let failures = 0;
 for (const theme of Object.keys(themes)) {
   const file = join(root, `webview/__render-${theme}.html`);
   writeFileSync(file, html(theme));
+  writeFileSync(join(root, `webview/__theme-${theme}.css`), themeCss(theme));
   for (const width of [260, 360, 500]) {
     const page = await browser.newPage({ viewport: { width, height: 900 } });
+    page.on('console', (m) => /Content Security Policy/.test(m.text()) && (failures++, console.log(`CSP ${theme} ${width}: ${m.text().slice(0, 120)}`)));
     await page.goto('file://' + file);
     for (const [name, model] of Object.entries(fixtures)) {
       await page.evaluate((m) => window.postMessage({ type: 'model', model: m }, '*'), model);
       await page.waitForTimeout(120);
       const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       if (over > 0) { failures++; console.log(`OVERFLOW ${theme} ${width} ${name}: ${over}px`); }
+      if (name === 'ready') {
+        const bar = await page.evaluate(() => [...document.querySelectorAll('.pl-split > i')].map((i) => i.getBoundingClientRect().width));
+        if (!bar.length || bar.some((w) => w < 1)) { failures++; console.log(`EMPTY BAR ${theme} ${width}: ${JSON.stringify(bar)}`); }
+      }
       if (name !== 'large') await page.screenshot({ path: join(root, `out-render/${name}-${theme}-${width}.png`), fullPage: true });
     }
     await page.close();
   }
 }
 await browser.close();
-for (const theme of Object.keys(themes)) require('node:fs').rmSync(join(root, `webview/__render-${theme}.html`));
+if (!process.env.KEEP) {
+  for (const f of ['__stub.js', ...Object.keys(themes).flatMap((t) => [`__render-${t}.html`, `__theme-${t}.css`])]) require('node:fs').rmSync(join(root, 'webview', f));
+}
 console.log(failures ? `${failures} overflow(s)` : 'render ok: no overflow');
 process.exit(failures ? 1 : 0);

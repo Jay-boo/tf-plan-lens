@@ -1,0 +1,8 @@
+**
+!dist/extension.js
+!webview/**
+!media/**
+!package.json
+!README.md
+!CHANGELOG.md
+!LICENSE

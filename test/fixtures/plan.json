@@ -1,0 +1,120 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.14.7",
+  "resource_changes": [
+    {
+      "address": "databricks_catalog.diapason_fresh",
+      "mode": "managed", "type": "databricks_catalog", "name": "diapason_fresh",
+      "change": { "actions": ["create"], "before": null, "after": { "name": "diapason_fresh", "comment": "fresh" },
+        "after_unknown": { "id": true }, "before_sensitive": false, "after_sensitive": {} }
+    },
+    {
+      "address": "module.storage.azurerm_storage_account.this",
+      "module_address": "module.storage",
+      "mode": "managed", "type": "azurerm_storage_account", "name": "this",
+      "action_reason": "replace_because_cannot_update",
+      "change": { "actions": ["delete", "create"],
+        "before": { "id": "/subs/x/sa", "location": "westeurope", "primary_access_key": "SECRET-KEY-1", "tags": { "owner": "data" } },
+        "after": { "location": "francecentral", "tags": { "owner": "dataplatform" } },
+        "after_unknown": { "id": true, "primary_access_key": true },
+        "before_sensitive": { "primary_access_key": true }, "after_sensitive": { "primary_access_key": true },
+        "replace_paths": [["location"]] }
+    },
+    {
+      "address": "module.storage.azurerm_storage_container.this[\"raw\"]",
+      "module_address": "module.storage",
+      "mode": "managed", "type": "azurerm_storage_container", "name": "this", "index": "raw",
+      "change": { "actions": ["update"], "before": { "name": "raw", "container_access_type": "blob" },
+        "after": { "name": "raw", "container_access_type": "private" }, "after_unknown": {}, "before_sensitive": {}, "after_sensitive": {} }
+    },
+    {
+      "address": "module.storage.azurerm_storage_container.this[\"bronze\"]",
+      "module_address": "module.storage",
+      "mode": "managed", "type": "azurerm_storage_container", "name": "this", "index": "bronze",
+      "change": { "actions": ["no-op"], "before": { "name": "bronze" }, "after": { "name": "bronze" }, "after_unknown": {}, "before_sensitive": {}, "after_sensitive": {} }
+    },
+    {
+      "address": "module.storage.azurerm_storage_container.this[\"gold\"]",
+      "module_address": "module.storage",
+      "mode": "managed", "type": "azurerm_storage_container", "name": "this", "index": "gold",
+      "change": { "actions": ["no-op"], "before": { "name": "gold" }, "after": { "name": "gold" }, "after_unknown": {}, "before_sensitive": {}, "after_sensitive": {} }
+    },
+    {
+      "address": "module.storage.azurerm_storage_management_policy.this",
+      "module_address": "module.storage",
+      "mode": "managed", "type": "azurerm_storage_management_policy", "name": "this",
+      "change": { "actions": ["create", "delete"], "before": { "rule": [{ "name": "old" }] }, "after": { "rule": [{ "name": "new" }] },
+        "after_unknown": {}, "before_sensitive": {}, "after_sensitive": {}, "replace_paths": [["rule", 0, "name"]] }
+    },
+    {
+      "address": "module.lakebase[\"main\"].databricks_database_instance.this",
+      "module_address": "module.lakebase[\"main\"]",
+      "mode": "managed", "type": "databricks_database_instance", "name": "this",
+      "change": { "actions": ["update"], "before": { "capacity": "CU_1", "name": "main" }, "after": { "capacity": "CU_2", "name": "main" },
+        "after_unknown": {}, "before_sensitive": {}, "after_sensitive": {} }
+    },
+    {
+      "address": "module.lakebase[\"fresh\"].databricks_database_instance.this",
+      "module_address": "module.lakebase[\"fresh\"]",
+      "mode": "managed", "type": "databricks_database_instance", "name": "this",
+      "change": { "actions": ["delete"], "before": { "capacity": "CU_1", "name": "fresh" }, "after": null,
+        "after_unknown": {}, "before_sensitive": {}, "after_sensitive": false }
+    },
+    {
+      "address": "module.unitycatalog.databricks_schema.legacy",
+      "module_address": "module.unitycatalog",
+      "mode": "managed", "type": "databricks_schema", "name": "legacy",
+      "action_reason": "delete_because_no_resource_config",
+      "change": { "actions": ["delete"], "before": { "name": "legacy" }, "after": null, "after_unknown": {}, "before_sensitive": {}, "after_sensitive": false }
+    },
+    {
+      "address": "module.unitycatalog.module.inner.databricks_grants.g",
+      "module_address": "module.unitycatalog.module.inner",
+      "mode": "managed", "type": "databricks_grants", "name": "g",
+      "change": { "actions": ["update"], "before": { "grant": [{ "principal": "a" }] }, "after": { "grant": [{ "principal": "a" }, { "principal": "b" }] },
+        "after_unknown": {}, "before_sensitive": {}, "after_sensitive": {} }
+    },
+    {
+      "address": "data.azurerm_client_config.current",
+      "mode": "data", "type": "azurerm_client_config", "name": "current",
+      "change": { "actions": ["read"], "before": null, "after": {}, "after_unknown": { "tenant_id": true }, "before_sensitive": false, "after_sensitive": {} }
+    },
+    {
+      "address": "module.kv.azurerm_key_vault_secret.s",
+      "module_address": "module.kv",
+      "mode": "managed", "type": "azurerm_key_vault_secret", "name": "s",
+      "change": { "actions": ["update"], "before": { "value": "OLD-SECRET-VALUE", "name": "s" }, "after": { "value": "NEW-SECRET-VALUE", "name": "s" },
+        "after_unknown": {}, "before_sensitive": true, "after_sensitive": true }
+    },
+    {
+      "address": "azurerm_role_assignment.old",
+      "mode": "managed", "type": "azurerm_role_assignment", "name": "old",
+      "change": { "actions": ["forget"], "before": { "role": "Reader" }, "after": null, "after_unknown": {}, "before_sensitive": {}, "after_sensitive": false }
+    },
+    {
+      "address": "module.remote.azurerm_thing.x",
+      "module_address": "module.remote",
+      "mode": "managed", "type": "azurerm_thing", "name": "x",
+      "change": { "actions": ["create"], "before": null, "after": { "a": 1 }, "after_unknown": {}, "before_sensitive": false, "after_sensitive": {} }
+    },
+    {
+      "address": "databricks_catalog.long",
+      "mode": "managed", "type": "databricks_catalog", "name": "long",
+      "change": { "actions": ["update"], "before": { "comment": "short" },
+        "after": { "comment": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" },
+        "after_unknown": {}, "before_sensitive": {}, "after_sensitive": {} }
+    }
+  ],
+  "configuration": {
+    "root_module": {
+      "module_calls": {
+        "storage": { "source": "./modules/storage_account", "module": {} },
+        "lakebase": { "source": "./modules/lakebase", "module": {} },
+        "unitycatalog": { "source": "./modules/databricks_unitycatalog",
+          "module": { "module_calls": { "inner": { "source": "../shared", "module": {} } } } },
+        "kv": { "source": "./modules/key_vault", "module": {} },
+        "remote": { "source": "Azure/x/azurerm", "module": {} }
+      }
+    }
+  }
+}

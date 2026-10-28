@@ -129,7 +129,8 @@ function diff(ch: Json, forced: Set<string>): AttrChange[] {
       after: sensitive || unknown ? '' : render(a),
       sensitive,
       unknown,
-      forcesReplace: forced.has(p),
+      // A replace path also covers what is inside it: `triggers_replace` forces `triggers_replace[0]`.
+      forcesReplace: [...forced].some((f) => p === f || p.startsWith(f + '.') || p.startsWith(f + '[')),
     });
   };
   walk(before, after, []);

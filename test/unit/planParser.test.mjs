@@ -82,3 +82,15 @@ test('long values cut', () => {
 test('rejects junk', () => {
   assert.throws(() => parsePlan({}, { env: '', source: '', loadedAt: 0 }), /Not a Terraform plan JSON/);
 });
+
+test('replace path covers its children', () => {
+  const p = parsePlan({
+    format_version: '1.2', resource_changes: [{
+      address: 'terraform_data.swap', mode: 'managed', type: 'terraform_data', name: 'swap',
+      change: { actions: ['delete', 'create'], before: { triggers_replace: ['one'], input_x: 'a' }, after: { triggers_replace: ['two'], input_x: 'b' },
+        after_unknown: {}, before_sensitive: {}, after_sensitive: {}, replace_paths: [['triggers_replace'], ['input']] },
+    }],
+  }, { env: '', source: '', loadedAt: 0 });
+  const attrs = Object.fromEntries(p.changes[0].attrs.map((a) => [a.path, a.forcesReplace]));
+  assert.deepEqual(attrs, { 'triggers_replace[0]': true, input_x: false });
+});

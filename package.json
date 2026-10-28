@@ -5,12 +5,128 @@
   "version": "0.1.0",
   "publisher": "jay-boo",
   "license": "MIT",
-  "engines": { "vscode": "^1.85.0" },
-  "categories": ["Visualization", "Other"],
-  "keywords": ["terraform", "plan", "hcl", "infrastructure", "azure"],
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "terraform",
+    "plan",
+    "hcl",
+    "infrastructure",
+    "azure"
+  ],
   "main": "./dist/extension.js",
-  "activationEvents": ["workspaceContains:**/*.tf"],
-  "contributes": {},
+  "activationEvents": [
+    "workspaceContains:**/*.tf"
+  ],
+  "contributes": {
+    "colors": [
+      {
+        "id": "planLens.create",
+        "description": "Plan Lens: create (markers, hints, sidebar)",
+        "defaults": {
+          "dark": "testing.iconPassed",
+          "light": "testing.iconPassed",
+          "highContrast": "testing.iconPassed",
+          "highContrastLight": "testing.iconPassed"
+        }
+      },
+      {
+        "id": "planLens.createBackground",
+        "description": "Plan Lens: background band of a block that will create",
+        "defaults": {
+          "dark": "#73c99112",
+          "light": "#388a3410",
+          "highContrast": null,
+          "highContrastLight": null
+        }
+      },
+      {
+        "id": "planLens.update",
+        "description": "Plan Lens: update (markers, hints, sidebar)",
+        "defaults": {
+          "dark": "charts.yellow",
+          "light": "charts.yellow",
+          "highContrast": "charts.yellow",
+          "highContrastLight": "charts.yellow"
+        }
+      },
+      {
+        "id": "planLens.updateBackground",
+        "description": "Plan Lens: background band of a block that will update",
+        "defaults": {
+          "dark": "#cca70012",
+          "light": "#bf880310",
+          "highContrast": null,
+          "highContrastLight": null
+        }
+      },
+      {
+        "id": "planLens.replace",
+        "description": "Plan Lens: replace (markers, hints, sidebar)",
+        "defaults": {
+          "dark": "charts.orange",
+          "light": "charts.orange",
+          "highContrast": "charts.orange",
+          "highContrastLight": "charts.orange"
+        }
+      },
+      {
+        "id": "planLens.replaceBackground",
+        "description": "Plan Lens: background band of a block that will replace",
+        "defaults": {
+          "dark": "#d1861612",
+          "light": "#c27d0010",
+          "highContrast": null,
+          "highContrastLight": null
+        }
+      },
+      {
+        "id": "planLens.destroy",
+        "description": "Plan Lens: destroy (markers, hints, sidebar)",
+        "defaults": {
+          "dark": "errorForeground",
+          "light": "errorForeground",
+          "highContrast": "errorForeground",
+          "highContrastLight": "errorForeground"
+        }
+      },
+      {
+        "id": "planLens.destroyBackground",
+        "description": "Plan Lens: background band of a block that will destroy",
+        "defaults": {
+          "dark": "#f8514912",
+          "light": "#e5140010",
+          "highContrast": null,
+          "highContrastLight": null
+        }
+      },
+      {
+        "id": "planLens.read",
+        "description": "Plan Lens: read (markers, hints, sidebar)",
+        "defaults": {
+          "dark": "charts.blue",
+          "light": "charts.blue",
+          "highContrast": "charts.blue",
+          "highContrastLight": "charts.blue"
+        }
+      },
+      {
+        "id": "planLens.readBackground",
+        "description": "Plan Lens: background band of a block that will be read",
+        "defaults": {
+          "dark": "#3794ff12",
+          "light": "#1a85ff10",
+          "highContrast": null,
+          "highContrastLight": null
+        }
+      }
+    ]
+  },
   "scripts": {
     "build": "node esbuild.mjs",
     "watch": "node esbuild.mjs --watch",

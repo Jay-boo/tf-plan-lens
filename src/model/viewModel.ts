@@ -26,6 +26,10 @@ export interface ViewModel {
   creates: Item[];
   reads: Item[];
   unchanged: number;
+  /** The plan came from a file, not from Run. */
+  loaded: boolean;
+  /** Last run / load failure, shown in the card. */
+  error?: string;
 }
 
 export interface ViewOptions {
@@ -35,6 +39,7 @@ export interface ViewOptions {
   now: number;
   rootName: string;
   locate: (c: Change) => { file: string; line: number } | undefined;
+  error?: string;
 }
 
 export function ago(ms: number): string {
@@ -86,6 +91,8 @@ export function toViewModel(plan: Plan | undefined, o: ViewOptions): ViewModel {
     creates: [],
     reads: [],
     unchanged: 0,
+    loaded: !!plan && !plan.env,
+    ...(o.error ? { error: o.error } : {}),
   };
   if (!plan) {
     vm.title = o.env ? `Plan · ${o.env}` : 'No plan yet';

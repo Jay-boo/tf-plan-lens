@@ -1,0 +1,246 @@
+/* Shared tokens and Sixth v2 components (copied from joblauncher_databricks): theme font and colours, one filled card per
+   screen, dashed section lines, outlined rows, small dark chips. Linked first by every webview. */
+:root {
+  color-scheme: light dark;
+  --pl-font: var(--vscode-font-family, system-ui, -apple-system, 'Segoe UI', sans-serif);
+  --pl-mono: var(--vscode-editor-font-family, ui-monospace, 'Cascadia Code', monospace);
+  --pl-fg: var(--vscode-foreground, #cccccc);
+  --pl-muted: var(--vscode-descriptionForeground, #9d9d9d);
+  --pl-faint: color-mix(in srgb, var(--pl-fg) 45%, transparent);
+  --pl-bg: var(--vscode-editor-background, #1f1f1f);
+  --pl-line: color-mix(in srgb, var(--pl-fg) 10%, transparent);
+  --pl-line-strong: color-mix(in srgb, var(--pl-fg) 18%, transparent);
+  --pl-hover: var(--vscode-list-hoverBackground, color-mix(in srgb, var(--pl-fg) 6%, transparent));
+  --pl-accent: var(--vscode-focusBorder, #0078d4);
+  --pl-border: var(--vscode-contrastBorder, transparent);
+  /* Emphasis text (names, titles): brighter than the foreground, as in Sixth. */
+  --pl-bright: color-mix(in srgb, var(--pl-fg) 65%, white);
+  /* The one filled surface: Sixth's clearly lighter Task card, and what sits inside it. */
+  --pl-card: color-mix(in srgb, var(--pl-fg) 16%, var(--pl-bg));
+  --pl-stat: color-mix(in srgb, var(--pl-fg) 6%, var(--pl-bg));
+  --pl-pill-bg: color-mix(in srgb, var(--pl-fg) 25%, var(--pl-bg));
+  --pl-btn-bg: var(--vscode-button-secondaryBackground, color-mix(in srgb, var(--pl-accent) 25%, var(--pl-bg)));
+  --pl-chip: color-mix(in srgb, var(--pl-fg) 12%, var(--pl-bg));
+  --pl-dash: color-mix(in srgb, var(--pl-fg) 22%, transparent);
+  /* Inputs, and code / log blocks. */
+  --pl-inset: var(--vscode-input-background, color-mix(in srgb, var(--pl-fg) 8%, var(--pl-bg)));
+  --pl-code: var(--vscode-textCodeBlock-background, color-mix(in srgb, var(--pl-fg) 8%, var(--pl-bg)));
+  --pl-float: var(--vscode-editorHoverWidget-background, var(--vscode-editorWidget-background, #252526));
+  --pl-float-border: var(--vscode-editorHoverWidget-border, var(--vscode-editorWidget-border, #454545));
+  --pl-shadow: 0 8px 24px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.36));
+  /* Status */
+  --pl-pending: var(--vscode-descriptionForeground, #9d9d9d);
+  --pl-running: var(--vscode-charts-blue, #3794ff);
+  --pl-success: var(--vscode-testing-iconPassed, #73c991);
+  --pl-failed: var(--vscode-errorForeground, #f85149);
+  --pl-skipped: var(--vscode-charts-yellow, var(--vscode-editorWarning-foreground, #cca700));
+  --pl-glyph: var(--vscode-charts-orange, #d18616);
+}
+
+body.vscode-light { --pl-bright: color-mix(in srgb, var(--pl-fg) 70%, black); }
+body.vscode-high-contrast, body.vscode-high-contrast-light { --pl-bright: var(--pl-fg); }
+
+/* ---------- Sixth's components ---------- */
+
+/* The one filled card per screen (Sixth's "Task" card): bold title, stat chips, progress bar. */
+.pl-task {
+  background: var(--pl-card);
+  border: 1px solid var(--pl-border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.pl-task .pl-title { font-size: 14px; font-weight: 700; color: var(--pl-bright); }
+.pl-stats { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.pl-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  height: 24px;
+  padding: 0 9px;
+  border: 1px solid var(--vscode-contrastBorder, var(--pl-line-strong));
+  border-radius: 8px;
+  background: var(--pl-stat);
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--pl-fg);
+}
+.pl-stat .codicon { font-size: 12px; color: var(--pl-muted); }
+.pl-bar { position: relative; height: 4px; border-radius: 2px; overflow: hidden; background: color-mix(in srgb, var(--pl-fg) 25%, transparent); }
+.pl-bar > i { position: absolute; top: 0; bottom: 0; border-radius: 2px; }
+
+/* Bold section heading with an icon ("Sixth wants to read this file:"). */
+.pl-hd { display: flex; align-items: center; gap: 8px; min-height: 26px; margin: 16px 0 8px; font-size: 13px; font-weight: 700; color: var(--pl-bright); }
+.pl-hd > .codicon { font-size: 15px; color: var(--pl-muted); }
+.pl-hd .n { font-weight: 400; color: var(--pl-faint); }
+.pl-hd .acts { display: flex; align-items: center; gap: 6px; margin-left: auto; font-weight: 400; }
+
+/* Sixth's file box: big outlined row, the action always visible. */
+.pl-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 44px;
+  margin-bottom: 8px;
+  padding: 7px 12px;
+  border: 1px solid var(--vscode-contrastBorder, var(--pl-line-strong));
+  border-radius: 12px;
+  cursor: pointer;
+}
+.pl-box:hover { background: var(--pl-hover); }
+.pl-box > .grow { flex: 1; min-width: 0; }
+.pl-box .pl-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pl-bright); }
+.pl-box .pl-sub { display: flex; align-items: center; gap: 8px; min-width: 0; margin-top: 1px; font-size: 12px; color: var(--pl-muted); white-space: nowrap; overflow: hidden; }
+
+/* Sixth's Auto-Approve bar: icon, label, a round pill, chevron. */
+.pl-ctxbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--vscode-contrastBorder, var(--pl-line-strong));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--pl-fg) 3%, var(--pl-bg));
+}
+.pl-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  height: 22px;
+  padding: 0 10px;
+  border: 1px solid var(--pl-border);
+  border-radius: 999px;
+  background: var(--pl-pill-bg);
+  color: var(--pl-bright);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Buttons: navy with a lighter border; primary solid. */
+.pl-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--vscode-button-secondaryForeground, var(--pl-bright));
+  background: var(--pl-btn-bg);
+  border: 1px solid color-mix(in srgb, var(--pl-accent) 45%, transparent);
+  border-color: var(--vscode-contrastBorder, color-mix(in srgb, var(--pl-accent) 45%, transparent));
+  border-radius: 6px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.pl-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--pl-accent) 35%, var(--pl-bg)); }
+.pl-btn:disabled { opacity: 0.55; cursor: default; }
+.pl-btn.sm { height: 26px; padding: 0 9px; font-size: 12px; }
+.pl-btn.primary { color: var(--vscode-button-foreground, #ffffff); background: var(--vscode-button-background, #0078d4); border-color: var(--vscode-button-border, var(--vscode-button-background, #0078d4)); }
+.pl-btn.primary:hover:not(:disabled) { background: var(--vscode-button-hoverBackground, #026ec1); }
+.pl-btn .codicon { font-size: 14px; }
+
+/* Plan | Act: a pill switch; the active option solid. */
+.pl-seg {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  padding: 2px;
+  border: 1px solid var(--vscode-contrastBorder, var(--pl-line-strong));
+  border-radius: 999px;
+}
+.pl-seg > * {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--pl-muted);
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.pl-seg > *:hover:not(:disabled):not(.on) { color: var(--pl-fg); }
+.pl-seg > .on { color: var(--vscode-button-foreground, #ffffff); background: var(--vscode-button-background, #0078d4); outline: 1px solid var(--vscode-contrastActiveBorder, transparent); }
+.pl-seg > :disabled { opacity: 0.45; cursor: default; }
+.pl-seg b { font-weight: 600; }
+.pl-seg .codicon { font-size: 13px; }
+
+/* Sections: <div class="jl-ck"><span class="name">Parameters · 4</span><button class="act">Save preset</button></div> */
+.pl-ck { display: flex; align-items: center; gap: 6px; min-height: 20px; margin: 12px 0 8px; color: var(--pl-faint); font-size: 11px; }
+.pl-ck .name { display: inline-flex; align-items: center; gap: 5px; min-width: 0; color: var(--pl-muted); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pl-ck::after { content: ''; flex: 1 1 12px; order: 1; min-width: 12px; border-top: 1px dashed var(--pl-dash); }
+.pl-ck .act {
+  order: 2;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 18px;
+  padding: 0 6px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: normal;
+  color: var(--pl-muted);
+  background: transparent;
+  border: 1px dashed var(--pl-dash);
+  outline: 1px solid var(--pl-border);
+  outline-offset: -1px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.pl-ck .act:hover { color: var(--pl-fg); border-style: solid; background: var(--pl-hover); }
+.pl-ck .act .codicon { font-size: 11px; }
+.pl-ck .pl-chip { order: 2; }
+
+/* Short clickable lists. */
+.pl-orow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-bottom: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--pl-line);
+  border-color: var(--vscode-contrastBorder, var(--pl-line));
+  outline: 1px solid var(--pl-border);
+  outline-offset: -1px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.pl-orow:hover { background: var(--pl-hover); }
+
+/* Chips: small, square-ish, dark; the meaning is in the text colour. */
+.pl-chip {
+  --c: var(--pl-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  height: 18px;
+  padding: 0 7px;
+  border: 1px solid var(--pl-border);
+  border-radius: 5px;
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--c);
+  background: var(--pl-chip);
+}
+.pl-chip .codicon { font-size: 11px; vertical-align: 0; color: inherit; }
+.c-run { --c: var(--pl-running); }
+.c-ok { --c: var(--pl-success); }
+.c-err { --c: var(--pl-failed); }
+.c-warn { --c: var(--pl-skipped); }
+
+/* A quote line, no box. */
+.pl-quote { margin: 10px 0; padding: 2px 0 2px 12px; border-left: 2px dashed var(--pl-dash); }

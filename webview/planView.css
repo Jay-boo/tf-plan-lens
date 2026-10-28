@@ -1,0 +1,109 @@
+/* Plan Lens sidebar: Sixth v2 (base.css) plus the plan's action colours. Theme colours only. */
+:root {
+  --pl-create: var(--vscode-planLens-create, var(--pl-success));
+  --pl-update: var(--vscode-planLens-update, var(--pl-skipped));
+  --pl-replace: var(--vscode-planLens-replace, var(--pl-glyph));
+  --pl-destroy: var(--vscode-planLens-destroy, var(--pl-failed));
+  --pl-read: var(--vscode-planLens-read, var(--pl-running));
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; overflow-x: hidden; }
+body {
+  padding: 4px 14px 16px;
+  font-family: var(--pl-font);
+  font-size: var(--vscode-font-size, 13px);
+  line-height: 1.4;
+  color: var(--pl-fg);
+  background: transparent;
+}
+button { font: inherit; }
+.codicon { font-size: 15px; }
+.grow { flex: 1; min-width: 0; }
+.muted { color: var(--pl-muted); }
+.faint { color: var(--pl-faint); }
+.mono { font-family: var(--pl-mono); font-size: 12px; }
+.ell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.k-create { --c: var(--pl-create); }
+.k-update { --c: var(--pl-update); }
+.k-replace { --c: var(--pl-replace); }
+.k-destroy, .k-forget { --c: var(--pl-destroy); }
+.k-read { --c: var(--pl-read); }
+.tc { color: var(--c); }
+
+/* Context bar: environment pill + Run | Load. */
+.pl-ctxbar { height: 40px; gap: 10px; padding: 0 8px 0 12px; }
+.pl-ctxbar .pl-pill { cursor: pointer; }
+.pl-ctxbar .pl-pill:hover { filter: brightness(1.15); }
+.pl-ctxbar .pl-pill .codicon { font-size: 12px; }
+.pl-ctxbar .pl-pill.none { color: var(--pl-muted); }
+@media (max-width: 300px) { .pl-seg .lbl { display: none; } }
+
+/* The Plan card. */
+.pl-task { margin-top: 12px; }
+.pl-task .head { display: flex; align-items: center; gap: 8px; }
+.pl-task .head > .codicon { color: var(--pl-bright); }
+.pl-task .sub { margin-top: 2px; font-size: 12px; color: var(--pl-muted); }
+.pl-task .sub.meta { display: flex; min-width: 0; }
+.pl-task .sub.meta .rest { flex: none; white-space: pre; }
+.pl-task .err { display: flex; gap: 6px; margin-top: 8px; font-size: 12px; color: var(--pl-failed); }
+.pl-task .err .codicon { font-size: 13px; margin-top: 1px; }
+.pl-stats { margin: 10px 0; gap: 5px; }
+.pl-stat { padding: 0 7px; gap: 4px; }
+.pl-stat b { font-weight: 700; color: var(--c, var(--pl-bright)); }
+.pl-split { display: flex; gap: 2px; height: 4px; border-radius: 2px; overflow: hidden; background: color-mix(in srgb, var(--pl-fg) 25%, transparent); }
+.pl-split > i { display: block; height: 100%; background: var(--c); }
+.pl-split.busy { position: relative; }
+.pl-split.busy > i { position: absolute; left: -40%; width: 40%; background: var(--pl-running); animation: pl-slide 1.2s ease-in-out infinite; }
+@keyframes pl-slide { to { left: 100%; } }
+@media (prefers-reduced-motion: reduce) { .pl-split.busy > i { animation: none; left: 0; width: 100%; opacity: 0.6; } }
+.pl-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.pl-btns .primary { flex: 1; }
+.pl-icon-btn {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 22px; height: 22px; padding: 0; border: none; border-radius: 5px;
+  color: var(--pl-muted); background: transparent; cursor: pointer;
+}
+.pl-icon-btn:hover { color: var(--pl-fg); background: var(--pl-hover); }
+.spin { animation: pl-spin 1s linear infinite; }
+@keyframes pl-spin { to { transform: rotate(360deg); } }
+
+/* Change boxes. */
+.pl-hd { margin-top: 18px; }
+.pl-box { width: 100%; text-align: left; font: inherit; color: inherit; background: transparent; }
+.pl-box.hot {
+  border-color: color-mix(in srgb, var(--c) 55%, var(--pl-line-strong));
+  background: color-mix(in srgb, var(--c) 7%, transparent);
+}
+.pl-box.hot:hover { background: color-mix(in srgb, var(--c) 12%, transparent); }
+.pl-box.flash { outline: 2px solid var(--pl-accent); outline-offset: 1px; }
+.pl-box .go { flex: none; color: var(--pl-muted); font-size: 14px; }
+.pl-glyph {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 26px; height: 26px; border-radius: 7px;
+  color: var(--c); background: color-mix(in srgb, var(--c) 16%, transparent);
+  border: 1px solid var(--pl-border);
+}
+.pl-glyph .codicon { font-size: 14px; }
+.pl-chip { color: var(--c); }
+.pl-more {
+  display: inline-block; margin: -2px 0 0 4px; padding: 0; border: none; background: none;
+  font-size: 12px; color: var(--pl-faint); cursor: pointer;
+}
+.pl-more:hover { color: var(--pl-fg); text-decoration: underline; }
+
+/* Compact rows (creates, reads). */
+.pl-orow { width: 100%; font: inherit; font-size: 12.5px; color: inherit; text-align: left; background: transparent; padding: 5px 10px; }
+.pl-orow .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
+.pl-orow .name { color: var(--pl-bright); }
+.pl-orow .loc { flex: none; color: var(--pl-faint); font-size: 12px; }
+
+.pl-ck .name { font-weight: 600; }
+
+/* Empty state environment list. */
+.pl-envs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.pl-envs button { cursor: pointer; }
+.pl-hint { margin-top: 10px; font-size: 12px; color: var(--pl-faint); }
+
+button:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: 1px; }

@@ -77,4 +77,13 @@ test('loaded file plan', () => {
   const v = toViewModel(p, { envs: [], running: false, now: 0, rootName: 'Root', locate: () => undefined });
   assert.equal(v.title, 'Plan · tfplan.json');
   assert.ok(v.sub.startsWith('tfplan.json · just now'));
+  assert.equal(v.loaded, true);
+  assert.equal(vm.loaded, false);
+});
+
+test('error', () => {
+  const v = toViewModel(undefined, { env: 'QUAL', envs: ['QUAL'], running: false, now: 0, rootName: 'x', locate: () => undefined, error: "Error: please run 'az login'" });
+  assert.equal(v.error, "Error: please run 'az login'");
+  assert.equal(v.state, 'empty');
+  assert.equal(vm.error, undefined);
 });

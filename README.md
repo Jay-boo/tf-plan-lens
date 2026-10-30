@@ -1,106 +1,137 @@
-# Terraform Plan Lens
+<p align="center">
+  <img src="media/icon.png" width="96" alt="Plan Lens">
+</p>
 
-See your Terraform plan **on the code**. Every `resource`, `data` and `module` block shows what the plan will do to it, and a sidebar lists the changes with the risky ones (replace, destroy) first.
+<h1 align="center">Terraform Plan Lens</h1>
 
-## What you get
+<p align="center">
+  <b>Your Terraform plan, on your code.</b><br>
+  See what every block will create, update, replace or destroy — refactor without recreating anything,<br>
+  see your values as you write, and know what an edit does <i>before</i> you plan.
+</p>
 
-- **Gutter icon + coloured band** on each changed block: create, update, replace, destroy, read.
-- **End-of-line hint** on the block header: `replace — forced by location`, `3 instances: 1 update · 2 unchanged`, `module: 1 destroy · 1 update`.
-- **Hover** on the header: attribute diff (before → after), `forces replace` flags, `(sensitive)` and `(known after apply)` values.
-- **Plan Lens sidebar** (same look as Gitland): environment picker, header with counts, *Needs a look* (replace / destroy, including resources removed from code), updates, creates, reads, and Re-plan / Apply at the bottom.
-- **The rest of the plan**: *Changed outside Terraform* (drift since the last apply), *Imports* (an import that is then replaced or destroyed goes to *Needs a look*), *Moved* (`new ← old`), and *Outputs* (before → after, never a sensitive value). In the editor: `import`, `moved from …` hints, and drift in the hover.
-- **Status bar**: `Plan QUAL · 12m · 1 replace · 2 destroy`, highlighted when anything is replaced or destroyed.
+<p align="center">
+  <a href="https://marketplace.visualstudio.com/items?itemName=jay-boo.tf-plan-lens"><img src="https://img.shields.io/visual-studio-marketplace/v/jay-boo.tf-plan-lens?label=VS%20Code%20Marketplace&color=0078d4" alt="Marketplace"></a>
+  <a href="https://github.com/Jay-boo/tf-plan-lens/actions/workflows/ci.yml"><img src="https://github.com/Jay-boo/tf-plan-lens/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <img src="https://img.shields.io/badge/Terraform%20%7C%20OpenTofu-7B42BC" alt="Terraform | OpenTofu">
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT">
+</p>
 
-## Getting a plan
+<p align="center">
+  <img src="media/readme/hero.png" alt="Plan Lens: the plan on the code, risky changes first" width="100%">
+</p>
 
-- **Run plan…** picks an environment and runs `terraform init`, `plan -out` and `show -json`. Environments come from:
-  - tfvars files matching `environments/**/terraform.tfvars` (with the `backend.conf` next to them), each planning the folder above `environments/`;
-  - every other **Terraform folder** in the workspace, with no setup: a folder with `.tf` files that is not a local module of another folder (nor under `modules/`). It plans as it is, so its `terraform.tfvars` and `*.auto.tfvars` apply. Monorepos with several roots and multi-root workspaces get one entry per root;
-  - its **workspaces**: local ones (`terraform.tfstate.d/`) show up by themselves as `infra:prod`; for a remote backend, **Find workspaces…** (in the environment picker or the view menu) runs `terraform workspace list` once and remembers them. A workspace env runs with `TF_WORKSPACE`, so the workspace selected in your terminal doesn't change. It uses its own `TF_DATA_DIR`, so your `.terraform` folder is never touched. The saved plan file is kept only until it is applied, replaced or cleared.
-- **Set environments folder…** (also in the environment picker and the empty sidebar) points Plan Lens at another folder: every subfolder with a `terraform.tfvars`, and every `*.tfvars` file in it, becomes an environment. It is saved as `planLens.environmentsFolder` in the workspace settings.
-- **Load plan file…** opens a `terraform show -json` file (e.g. from a pipeline), or a binary plan file (converted with `terraform show -json`).
+`terraform plan` prints a wall of text in a terminal, far from the code it is about. You scroll, you search for `-/+`, you hope you didn't miss the line that replaces the production database. **Plan Lens puts the plan where you work:** on each block of your code, in a sidebar that shows the risky changes first, and in the hover with every attribute that changes and what forces the replace.
 
-## Refactoring without recreating anything
+Works with **Terraform and OpenTofu**, any cloud (AWS, Azure, Google Cloud…), any layout: one folder, environments with their tfvars, Terraform workspaces, monorepos.
 
-Rename a resource, move it into a module, switch `count` to `for_each` or rename a module, and Terraform plans a destroy
-and a create: the object would be recreated. Plan Lens spots those pairs — same type, same values, new address — and
-shows a **Looks like a refactor** card above the risky changes:
+---
 
-- each move with its match (`100%`), whole module moves folded into one (`module.old → module.new`);
-- **ambiguous** pairs (another object matches about as well) are shown but not ticked;
-- **Write moved.tf** appends the ticked `moved` blocks to `moved.tf` in the Terraform root (one undoable edit, opened
-  beside); **Write & re-plan** then plans again and tells you `destroys 11 → 1`.
+## Your plan, on your code
 
-In the editor, a block that looks moved says so at the end of its line (`looks moved from terraform_data.lake`), with a
-quick fix (Ctrl+.) and a hover link to add just that moved block. Values that every object of a type shares (a common
-`location`) don't count as a match, sensitive values are never compared, and nothing is written to the state: delete a
-moved block to undo it.
+Click ▷ next to an environment. Plan Lens runs the plan and every `resource`, `data` and `module` block gets a gutter icon, a coloured band and a hint: `replace — forced by hash_key`, `update · 2 attributes`, `3 instances: 1 update · 2 unchanged`. The sidebar puts what needs a look first — replaces and destroys, including resources you removed from the code.
 
-## Values as you write
+<p align="center"><img src="media/readme/plan.gif" alt="Running a plan: the sidebar fills and the code shows what changes" width="100%"></p>
 
-Plan Lens shows what the environment's root module evaluates to, like a debugger's inline values: `locals` (`= "rg-qual-data"`), `variable`s, `for_each` / `count` (`→ 3 instances: "app", "db", "pe"`) and outputs, at the end of their line, in full in the hover, and following your typing. Select any expression and run **Plan Lens: Evaluate selection** (editor context menu) to see its value. Errors are Terraform's own (`⚠ Reference to undeclared local value`).
+- **Hover** a block: before → after for every attribute, `forces replacement`, `(sensitive)`, `(known after apply)`.
+- **The plan card**: `+1 create ~1 update ±1 replace −1 destroy`, and a bar per change, the riskier the taller — the blast radius at a glance.
+- **Everything else in the plan**: imports (an import that is replaced right away is flagged), moved objects, output changes, and what changed outside Terraform — discreet by default.
 
-It is Terraform's evaluator (`terraform console`) with the environment's variables, run on Plan Lens's own copy of the root and its local modules with a **local, empty state**: console locks the state it reads, so the team's remote state is never touched. Attributes only the cloud knows show `(known after apply)`; sensitive values are never shown. The first values of a project wait for a `terraform init` of that copy (providers come from a shared plugin cache).
+## Refactor without recreating anything
 
-## Preview your edit on save
+Renamed a resource, moved it into a module, switched `count` to `for_each`? Terraform plans a destroy and a create: the object would be **recreated**. Plan Lens recognises the pairs — same type, same values, new address — and offers the `moved` blocks. **Write & re-plan**, and the destroys are gone.
 
-Once an environment has been planned here, saving a `.tf` file plans **just the blocks you edited** since that plan and says on the edited lines what it would do — before anyone runs a full plan:
+<p align="center"><img src="media/readme/refactor.gif" alt="Two queues moved into a module: Plan Lens writes the moved blocks and the destroys disappear" width="100%"></p>
 
-```hcl
-resource "azurerm_storage_account" "lake" {   ◆ preview: replace — forced by location
-  location = "francecentral"                  ⟳ forces replacement
-  sku      = "Standard_GRS"                   ~ "Standard_LRS" → "Standard_GRS"
-```
+Whole module moves fold into one `moved { from = module.old  to = module.new }`. Pairs it is not sure about are shown but never ticked for you. Nothing touches the state: the blocks go in `moved.tf`, reviewable in your PR.
 
-It is `terraform plan -target=… -refresh=false -lock=false`: read only, it never takes the state lock (your teammates are never blocked), never refreshes the whole state, and is never applied. Hover the block for the attribute table. The preview goes when you edit the block again or when a full plan comes in. Blocks in a module are previewed through the module calls of the last plan; moved blocks not applied yet are taken in as Terraform asks.
+## Your values, as you write
 
-## Completions from your data
+What does `{ for s in var.services : s.name => s }` actually give for prod? Plan Lens shows what locals, variables, `for_each` and outputs **evaluate to for the selected environment**, at the end of the line — and completes map keys and object fields from your real data.
 
-Because Plan Lens knows the values, it completes what the language server can't: `local.subnets.` / `local.subnets["` → `app`, `db`, `pe`; `each.value.` → the fields of the block's `for_each` elements; `var.config.` → the fields of the variable, each with its value for the environment.
+<p align="center"><img src="media/readme/values.gif" alt="Inline values for dev, completions from the data, then prod" width="100%"></p>
 
-## Settings page
+It is Terraform's own evaluator (`terraform console`) with the environment's variables, run on Plan Lens's own copy of your configuration with an **empty local state**: your team's state is never read or locked. Select any expression and run **Evaluate selection** to see its value.
 
-The gear in the sidebar header opens Plan Lens's settings: what each sidebar section shows (*shown*, *discreet* — one faint line you open on click — or *hidden*; *Changed outside Terraform* and *Reads* are discreet by default), the refactor autopilot, the plan on the code, the "no changes" hints, values as you write, Apply (per workspace), the Terraform binary and where environments come from. They are ordinary VS Code settings (`planLens.*`).
+## Know before you plan
 
-## Applying
+Once an environment is planned, **saving a file previews just the blocks you edited**: a read-only, targeted plan says on the edited lines what that would do — before anyone runs the full plan.
 
-Off by default: the button reads **Apply…** and points to the setting. With `planLens.allowApply` on, a plan run from Plan Lens shows **Apply <env>**. It asks for confirmation (and for the environment name when the plan replaces or destroys anything), runs `terraform apply` on **that exact saved plan** — Terraform refuses it if the state changed since — then plans again. Loaded plan files can't be applied.
+<p align="center"><img src="media/readme/preview.gif" alt="Renaming a DynamoDB table: on save, Plan Lens shows it would be replaced" width="100%"></p>
 
-When a plan fails on an expired or missing cloud login, the error offers the login command in a terminal: `az login`, `aws sso login` / `aws configure`, or `gcloud auth application-default login`.
+`-target` on the edited blocks, `-refresh=false`, `-lock=false`: seconds, not minutes, never blocks a teammate, never applied.
 
-## Trust and OpenTofu
+---
 
-Terraform runs code from the workspace (providers, modules), so Plan Lens runs it only in a [trusted workspace](https://code.visualstudio.com/docs/editor/workspace-trust); in restricted mode you can still load a plan JSON. With `planLens.terraformPath` empty, Plan Lens runs `terraform`, or `tofu` when only OpenTofu is installed.
+## And also
 
-## Targeting
+- **Environments with no setup** — `environments/*/terraform.tfvars` (+ `backend.conf`), any folder of tfvars, every Terraform root of a monorepo, Terraform workspaces (local, or listed from the backend).
+- **Targeting** — pick changes or whole modules, plan with `-target`, see what Terraform pulled in as dependencies.
+- **Apply the exact plan you reviewed** — opt-in per workspace; a destroy or replace asks you to type the environment's name. Terraform refuses it if the state moved since.
+- **Stuck state lock** — shows who holds it and since when, force-unlocks after you confirm.
+- **Expired cloud login** — offers `az login`, `aws sso login` or `gcloud auth application-default login` in a terminal.
+- **Load a plan file** from your CI (`terraform show -json`, or a binary plan).
+- **A settings page** in the sidebar: what each section shows (*shown*, *discreet*, *hidden*), every feature on or off.
 
-To plan and apply only some changes, click the target icon in the sidebar header (or run **Plan Lens: Plan with targets…**) and pick changes or whole modules, then **Plan N targets**. Plan Lens runs `terraform plan -target=…` and shows the result. A banner lists the targets, and changes that no target picked are tagged *pulled in*: Terraform added them as dependencies, so look at them before applying. **Apply targeted** applies that exact plan, with the targets listed in the confirmation. Re-plan keeps the targets; **Full plan** drops them. After an apply, Plan Lens runs a full plan to show what is still pending. Terraform's `apply -target` can't be used with a saved plan, so targeting always goes through a new plan that you review first.
+## Safe by design
+
+| | Touches your real state? |
+|:--|:--|
+| Plan, targeted plan | Reads it, like `terraform plan` (own `TF_DATA_DIR`: your `.terraform` is never touched) |
+| Preview on save | Reads it, **without the lock** (`-lock=false`, `-refresh=false`) |
+| Values, completions | **Never**: an isolated copy with an empty local state |
+| Refactor | **Never**: writes `moved` blocks to `moved.tf` |
+| Apply | Only when you turn it on, after a confirmation, on the exact saved plan |
+
+Plan Lens runs Terraform only in [trusted workspaces](https://code.visualstudio.com/docs/editor/workspace-trust). It sends nothing anywhere: no telemetry, no account.
+
+## Get started
+
+1. Install **Terraform Plan Lens**, open a folder with Terraform code.
+2. Open the Plan Lens view in the activity bar.
+3. Click ▷ next to an environment (or **Run plan**). Your usual credentials are used (`az login`, AWS profile, `gcloud`…).
+
+No environment layout to adopt: a plain folder with `.tf` files works. Plan Lens pairs well with HashiCorp's Terraform extension (syntax, completion of the language): they don't overlap.
 
 ## Settings
 
+All in the sidebar's settings page (gear), or as `planLens.*` settings.
+
 | Setting | Default | |
 |:--|:--|:--|
-| `planLens.environmentsFolder` | (empty) | Folder that holds the environments; overrides the glob |
-| `planLens.environmentGlob` | `environments/**/terraform.tfvars` | Where environments are found when no folder is set |
-| `planLens.root` | (empty) | Terraform root; empty = parent of the environments folder |
-| `planLens.terraformPath` | (empty) | Terraform or OpenTofu binary; empty = `terraform`, else `tofu` |
-| `planLens.allowApply` | `false` | Show the Apply button after a plan run |
-| `planLens.showUnchanged` | `true` | Faint "no changes" hint on untouched blocks |
+| `planLens.editorMarkers` | `true` | The plan on the code: gutter icon, band, hint |
 | `planLens.inlineValues` | `true` | Values as you write |
-| `planLens.preview` | `true` | Preview edited blocks on save |
 | `planLens.completions` | `true` | Completions from the evaluated values |
-| `planLens.editorMarkers` | `true` | Gutter icon, band and hint on changed blocks |
+| `planLens.preview` | `true` | Preview edited blocks on save |
 | `planLens.refactor` | `true` | Refactor autopilot |
+| `planLens.showUnchanged` | `true` | Faint "no changes" hint on untouched blocks |
 | `planLens.sidebar.drift` / `.reads` | `discreet` | `shown`, `discreet` or `hidden` |
 | `planLens.sidebar.imports` / `.moved` / `.outputs` | `shown` | `shown`, `discreet` or `hidden` |
+| `planLens.allowApply` | `false` | Apply from Plan Lens (per workspace) |
+| `planLens.terraformPath` | (empty) | `terraform`, else `tofu` when only OpenTofu is installed |
+| `planLens.environmentsFolder` | (empty) | Folder holding the environments |
+| `planLens.environmentGlob` | `environments/**/terraform.tfvars` | Where environments are found |
+| `planLens.root` | (empty) | Terraform root, when it can't be guessed |
 
-Colours are theme colours (`planLens.create`, `planLens.replace`, …, and `planLens.*Background` for the bands); override them in `workbench.colorCustomizations`.
+Colours are theme colours (`planLens.create`, `planLens.replace`, …): override them in `workbench.colorCustomizations`.
+
+## FAQ
+
+**Does it need my cloud credentials?** For plans and previews, the same as `terraform plan` does. Values and completions don't: they never read the state.
+
+**Terraform Cloud / HCP Terraform?** Load the plan JSON of a run (**Load plan file…**). Running plans from Plan Lens needs a backend Terraform can plan against locally.
+
+**Where do the GIFs come from?** A real VS Code on an ordinary AWS project, applied on [LocalStack](https://localstack.cloud) — every plan you see is Terraform's own. `npm run demo` records them again.
 
 ## Development
 
 ```
 npm install
 npm run test:unit   # model tests
-npm run render      # webview screenshots in out-render/, fails on overflow
+npm run render      # sidebar screenshots in out-render/, fails on overflow
+npm run e2e         # VS Code end to end on a real refactored root (needs terraform)
+npm run demo        # README GIFs (needs docker and terraform)
 npm run package     # tf-plan-lens-<version>.vsix
 ```
+
+MIT licensed.

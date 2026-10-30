@@ -46,6 +46,8 @@ export interface ViewModel {
   sub: string;
   counts: { create: number; update: number; replace: number; destroy: number; import: number };
   bar: { action: 'create' | 'update' | 'replace' | 'destroy'; pct: number }[];
+  /** The header's bar strip: one bar per change, worst first (at most STRIP; bigger plans are scaled down). */
+  strip: ('create' | 'update' | 'replace' | 'destroy')[];
   attention: Item[];
   updates: Item[];
   creates: Item[];
@@ -160,6 +162,8 @@ function item(c: Change, locate: ViewOptions['locate']): Item {
   };
 }
 
+const STRIP = 48;
+
 const ORDER: Partial<Record<Action, number>> = { replace: 0, destroy: 1, forget: 2 };
 
 export function toViewModel(plan: Plan | undefined, o: ViewOptions): ViewModel {
@@ -177,6 +181,7 @@ export function toViewModel(plan: Plan | undefined, o: ViewOptions): ViewModel {
     sub: '',
     counts,
     bar: [],
+    strip: [],
     attention: [],
     updates: [],
     creates: [],
@@ -272,6 +277,9 @@ export function toViewModel(plan: Plan | undefined, o: ViewOptions): ViewModel {
   vm.canApply = vm.canApply && total + counts.import > 0;
   vm.applyOff = vm.applyOff && total + counts.import > 0;
   if (total) {
+    // Each action keeps its share of the strip (at least one bar when present).
+    const scale = Math.min(1, STRIP / total);
+    vm.strip = (['destroy', 'replace', 'update', 'create'] as const).flatMap((a) => Array<typeof a>(counts[a] ? Math.max(1, Math.round(counts[a] * scale)) : 0).fill(a));
     vm.bar = (['create', 'update', 'replace', 'destroy'] as const)
       .filter((a) => counts[a])
       .map((a) => ({ action: a, pct: (counts[a] / total) * 100 }));

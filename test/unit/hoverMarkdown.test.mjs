@@ -65,3 +65,11 @@ test('escaping', () => {
   const row = md.split('\n').find((l) => l.includes('script'));
   assert.equal(row.split(/(?<!\\)\|/).length, 5, 'row keeps 3 cells');
 });
+
+test('table: attributes forcing the replace first, then known changes, then known after apply', () => {
+  const attr = (path, extra = {}) => ({ path, before: '"a"', after: '"b"', sensitive: false, unknown: false, forcesReplace: false, ...extra });
+  const c = { address: 'aws_dynamodb_table.orders', action: 'replace', attrs: [attr('arn', { unknown: true, after: '' }), attr('deletion_protection_enabled'), attr('name', { forcesReplace: true })], replaceBy: ['name'], mode: 'managed', type: 'aws_dynamodb_table', name: 'orders' };
+  const md = hoverMarkdown({ block: { kind: 'resource', type: 'aws_dynamodb_table', name: 'orders', startLine: 0, endLine: 3, headerEnd: 0 }, changes: [c], action: 'replace', hint: '' });
+  const order = ['`name`', '`deletion_protection_enabled`', '`arn`'].map((k) => md.indexOf(k));
+  assert.deepEqual([...order].sort((a, b) => a - b), order);
+});

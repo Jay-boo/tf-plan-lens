@@ -192,3 +192,11 @@ test('sections and settings: drift discreet by default, settings override, refac
   assert.equal(w.attention.every((i) => !i.movesTo), true);
   assert.equal(w.settings.find((s) => s.key === 'allowApply').value, true);
 });
+
+test('bar strip: one bar per change, worst first; big plans scaled with every action kept', () => {
+  assert.deepEqual(vm.strip, ['destroy', 'destroy', 'destroy', 'replace', 'replace', 'update', 'update', 'update', 'update', 'update', 'create', 'create']);
+  const big = { ...plan, changes: [...Array(500)].map((_, i) => ({ ...plan.changes[0], address: `x.y${i}`, action: i === 0 ? 'destroy' : 'update' })) };
+  const v = toViewModel(big, { env: 'QUAL', envs: [], running: false, now: 0, rootName: 'r', locate: () => undefined });
+  assert.ok(v.strip.length <= 49);
+  assert.equal(v.strip[0], 'destroy');
+});

@@ -1,7 +1,9 @@
 **
 !dist/extension.js
 !webview/**
-!media/**
+!media/*.png
+!media/*.svg
+!media/gutter/**
 !package.json
 !README.md
 !CHANGELOG.md

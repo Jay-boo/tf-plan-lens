@@ -1,7 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.4.0
 
+- **New look**: a plan card with stat pills and a bar per change (the riskier the taller), bold icon headings, outlined boxes with icon tiles, an Apply bar; values as soft pills in the editor; a new icon.
 - **Preview your edit on save**: after a plan, saving plans just the edited blocks (`-target`, no refresh, no lock: read only) and says on the edited lines what that would do — `◆ preview: replace — forced by location`, `⟳ forces replacement`, `~ "LRS" → "GRS"`. Unapplied moved blocks are handled.
 - **Completions from your data**: map keys and object fields from the evaluated values after `local.x.`, `local.x["`, `var.x.`, `each.value.`.
 - **Values as you write**: locals, variables, `for_each` / `count` and outputs show what they evaluate to for the environment, at the end of the line and in the hover; **Evaluate selection** for any expression. Terraform's own evaluator on Plan Lens's own copy with a local empty state — the real state is never read or locked.

@@ -37,7 +37,10 @@ function cell(a: AttrChange): string {
 
 function table(c: Change): string[] {
   if (!c.attrs.length) return [];
-  const rows = c.attrs.slice(0, MAX_ROWS).map(
+  // What forces the replace first, then what the code changes, then what only the cloud will know.
+  const rank = (a: AttrChange) => (a.forcesReplace ? 0 : a.unknown ? 2 : 1);
+  const attrs = [...c.attrs].sort((a, b) => rank(a) - rank(b));
+  const rows = attrs.slice(0, MAX_ROWS).map(
     (a) => `| \`${a.path.replace(/`/g, "'").replace(/\|/g, '\\|')}\` | ${cell(a)} | ${a.forcesReplace ? color('replace', '$(sync) **forces replace**') : ''} |`,
   );
   if (c.attrs.length > MAX_ROWS) rows.push(`| | *+ ${c.attrs.length - MAX_ROWS} more* | |`);

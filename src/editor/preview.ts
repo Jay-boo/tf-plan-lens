@@ -135,6 +135,10 @@ export class EditPreview implements vscode.Disposable {
   }
 
   private paint(): void {
+    // Tell the plan's decorations which block headers a preview now speaks for.
+    this.store.previewed.clear();
+    for (const [uri, s] of this.shown) this.store.previewed.set(uri, new Set(s.marks.map((m) => m.block.startLine)));
+    this.store.touch();
     for (const e of vscode.window.visibleTextEditors) {
       const s = this.shown.get(e.document.uri.toString());
       for (const look of LOOKS) {

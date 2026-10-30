@@ -27,8 +27,13 @@ export function valueText(t: EvalTarget, v: EvalValue): string {
  * of their line and in a hover, computed by terraform console on Plan Lens's own copy of the configuration.
  */
 export class InlineValues implements vscode.Disposable {
+  // A soft pill in the inlay-hint colours, apart from the plan's coloured hints (VS Code has no padding or radius
+  // option: they ride on textDecoration).
   private readonly deco = vscode.window.createTextEditorDecorationType({
-    after: { color: new vscode.ThemeColor('editorInlayHint.foreground'), margin: '0 0 0 2.5em', fontStyle: 'normal' },
+    after: {
+      color: new vscode.ThemeColor('editorInlayHint.foreground'), backgroundColor: new vscode.ThemeColor('editorInlayHint.background'),
+      margin: '0 0 0 2.5em', fontStyle: 'normal', textDecoration: 'none; border-radius: 4px; padding: 0 6px',
+    },
   });
   private readonly errDeco = vscode.window.createTextEditorDecorationType({
     after: { color: new vscode.ThemeColor('editorWarning.foreground'), margin: '0 0 0 2.5em', fontStyle: 'italic' },

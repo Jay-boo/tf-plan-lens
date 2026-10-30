@@ -76,7 +76,10 @@ export class Decorations implements vscode.Disposable {
     const bands = new Map<string, vscode.Range[]>(LOOKS.map((a) => [a, []]));
     const headers = new Map<string, vscode.DecorationOptions[]>(LOOKS.map((a) => [a, []]));
     const noops: vscode.DecorationOptions[] = [];
+    const previewed = this.store.previewed.get(doc.uri.toString());
     for (const m of marks) {
+      // An edit preview of this block is newer than the plan: its hint speaks instead.
+      if (previewed?.has(m.block.startLine)) continue;
       const line = doc.lineAt(Math.min(m.block.startLine, doc.lineCount - 1));
       const opt: vscode.DecorationOptions = { range: line.range, renderOptions: { after: { contentText: hintText(m) + movedHint(movesInto(this.store, m)) } } };
       if (m.action === 'noop') {

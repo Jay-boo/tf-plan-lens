@@ -1,23 +1,40 @@
 {
   "name": "tf-plan-lens",
   "displayName": "Terraform Plan Lens",
-  "description": "See your Terraform plan on the code: what each resource block will create, update, replace or destroy, with the risky changes first.",
-  "version": "0.3.0",
+  "description": "Your Terraform plan on your code: what each block will create, update, replace or destroy, risky changes first. Refactor without recreating (moved blocks), see values as you write, preview edits on save. Terraform & OpenTofu.",
+  "version": "0.4.0",
   "publisher": "jay-boo",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Jay-boo/tf-plan-lens.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Jay-boo/tf-plan-lens/issues"
+  },
+  "homepage": "https://github.com/Jay-boo/tf-plan-lens#readme",
   "engines": {
     "vscode": "^1.85.0"
   },
   "categories": [
     "Visualization",
+    "Linters",
     "Other"
   ],
   "keywords": [
     "terraform",
+    "opentofu",
     "plan",
     "hcl",
-    "infrastructure",
-    "azure"
+    "iac",
+    "infrastructure as code",
+    "aws",
+    "azure",
+    "gcp",
+    "refactor",
+    "moved",
+    "drift",
+    "devops"
   ],
   "main": "./dist/extension.js",
   "activationEvents": [
@@ -454,8 +471,9 @@
     "vscode:prepublish": "node esbuild.mjs --production",
     "test:unit": "node test/unit/build.mjs && node --test test/unit/",
     "render": "node test/render/render.mjs",
-    "package": "npm run typecheck && node -r ./scripts/file-shim.cjs ../gitland/node_modules/@vscode/vsce/vsce package --no-dependencies --allow-missing-repository",
-    "e2e": "node esbuild.mjs && node test/e2e/runTest.js"
+    "package": "npm run typecheck && node -r ./scripts/file-shim.cjs ../gitland/node_modules/@vscode/vsce/vsce package --no-dependencies",
+    "e2e": "node esbuild.mjs && node test/e2e/runTest.js",
+    "demo": "node test/demo/record.mjs"
   },
   "devDependencies": {
     "@types/node": "^18.19.0",
@@ -465,7 +483,7 @@
   },
   "icon": "media/icon.png",
   "galleryBanner": {
-    "color": "#1d2129",
+    "color": "#1a1e2c",
     "theme": "dark"
   },
   "capabilities": {

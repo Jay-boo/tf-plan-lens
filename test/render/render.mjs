@@ -55,8 +55,9 @@ for (const theme of Object.keys(themes)) {
       const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       if (over > 0) { failures++; console.log(`OVERFLOW ${theme} ${width} ${name}: ${over}px`); }
       if (name === 'ready') {
-        const bar = await page.evaluate(() => [...document.querySelectorAll('.pl-split > i')].map((i) => i.getBoundingClientRect().width));
-        if (!bar.length || bar.some((w) => w < 1)) { failures++; console.log(`EMPTY BAR ${theme} ${width}: ${JSON.stringify(bar)}`); }
+        // The bar strip: every bar drawn (at least 2px wide and some height).
+        const bar = await page.evaluate(() => [...document.querySelectorAll('.pl-strip > i')].map((i) => [i.getBoundingClientRect().width, i.getBoundingClientRect().height]));
+        if (!bar.length || bar.some(([w, hgt]) => w < 2 || hgt < 4)) { failures++; console.log(`EMPTY BAR ${theme} ${width}: ${JSON.stringify(bar)}`); }
       }
       if (name !== 'large') await page.screenshot({ path: join(root, `out-render/${name}-${theme}-${width}.png`), fullPage: true });
     }

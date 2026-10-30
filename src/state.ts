@@ -12,6 +12,8 @@ export interface PlanState {
   /** Absolute fs path of the Terraform root the plan belongs to. */
   readonly root?: string;
   marksFor(relPath: string, text: string): BlockMark[];
+  /** Lines (by document URI) where an edit preview speaks for the block: the plan's own hint gives way there. */
+  readonly previewed: Map<string, Set<number>>;
   /** The refactor move that would keep the object a create (or destroy) at this address is, if any. */
   moveOf(address: string): Move | undefined;
   readonly onDidChange: vscode.Event<void>;
@@ -30,6 +32,7 @@ export class PlanStore implements PlanState, vscode.Disposable {
   error?: string;
   /** Destroy/create pairs of the plan that look like one object moved (refactor autopilot). */
   moves: Move[] = [];
+  readonly previewed = new Map<string, Set<number>>();
   private readonly emitter = new vscode.EventEmitter<void>();
   readonly onDidChange = this.emitter.event;
   private readonly scanCache = new Map<string, { text: string; blocks: Block[] }>();

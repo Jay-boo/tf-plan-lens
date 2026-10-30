@@ -69,20 +69,24 @@
       h('button', { class: `icon${settingsOpen ? ' on' : ''}`, title: 'Settings', 'aria-label': 'Settings', 'aria-pressed': String(settingsOpen), onclick: () => { settingsOpen = !settingsOpen; render(); } }, icon('settings-gear')));
     const kids = [top];
     if (m.state === 'ready' || (running && m.sub)) {
-      const counts = h('span', { class: 'counts' });
+      // Stat pills, like a task card's: what the plan does, in Terraform's symbols.
+      const stats = h('div', { class: 'pl-stats' });
       for (const a of ['create', 'update', 'replace', 'destroy', 'import']) {
-        if (m.counts[a]) counts.append(h('span', { class: `k-${a === 'import' ? 'read' : a}`, title: `${m.counts[a]} to ${a}` }, h('b', { text: `${{ create: '+', update: '~', replace: '±', destroy: '−', import: '↓' }[a]}${m.counts[a]}` })));
+        if (!m.counts[a]) continue;
+        stats.append(h('span', { class: `pl-stat k-${a === 'import' ? 'read' : a}`, title: `${m.counts[a]} to ${a}` },
+          h('b', { text: `${{ create: '+', update: '~', replace: '±', destroy: '−', import: '↓' }[a]}${m.counts[a]}` }), h('span', { text: a })));
       }
-      if (!counts.childElementCount) counts.append(h('span', { text: 'no changes' }));
+      if (!stats.childElementCount) stats.append(h('span', { class: 'pl-stat k-create' }, icon('pass'), h('span', { text: 'no changes' })));
+      kids.push(stats);
       // The folder name may be long; only it gets cut, the age and version stay visible.
       const [origin, ...rest] = m.sub.split(' · ');
-      kids.push(h('div', { class: 'pl-meta' }, counts, h('span', { class: 'src ell', title: m.sub, text: origin }), rest.length ? h('span', { class: 'rest', text: '· ' + rest.join(' · ') }) : null));
+      kids.push(h('div', { class: 'pl-meta' }, icon('folder'), h('span', { class: 'src ell', title: m.sub, text: origin }), rest.length ? h('span', { class: 'rest', text: '· ' + rest.join(' · ') }) : null));
     }
-    if (m.state !== 'empty') {
-      const bar = h('div', { class: `pl-split${running ? ' busy' : ''}${m.applying ? ' apply' : ''}`, role: running ? 'progressbar' : 'img', 'aria-label': running ? (m.applying ? 'Applying' : 'Planning') : 'Change mix' });
-      if (running) bar.append(h('i'));
-      else for (const b of m.bar) bar.append(h('i', { class: `k-${b.action}`, style: `width:${b.pct}%` }));
-      kids.push(bar);
+    if (running) {
+      kids.push(h('div', { class: `pl-split busy${m.applying ? ' apply' : ''}`, role: 'progressbar', 'aria-label': m.applying ? 'Applying' : 'Planning' }, h('i')));
+    } else if (m.strip.length) {
+      // The blast radius at a glance: one bar per change, worst (tallest) first.
+      kids.push(h('div', { class: 'pl-strip', role: 'img', 'aria-label': `Change mix: ${m.strip.length} bars, worst first` }, m.strip.map((a) => h('i', { class: `k-${a}` }))));
     }
     if (running) kids.push(h('button', { class: 'pl-tail', title: 'Open the full log', onclick: () => post('log') }, tailText(m.tail)));
     return h('header', { class: 'pl-head' }, kids);
@@ -145,7 +149,7 @@
     if (it.movesTo) sub.append(h('span', { class: 'pl-mvto', title: `Looks moved to ${it.movesTo}` }, icon('arrow-right'), h('span', { text: shortAddr(it.movesTo) })));
     else if (it.module) sub.append(h('span', { class: 'faint', text: it.module }));
     return h('button', { class: `gl-orow pl-orow k-${it.action}${rowCls(it)}`, title: tip(it), 'data-address': it.address, onclick: () => open(it) },
-      pick ? check(it.address) : icon(ICON[it.action]),
+      pick ? check(it.address) : h('span', { class: `pl-tile k-${it.action}` }, icon(ICON[it.action])),
       h('div', { class: 'grow' }, h('span', { class: 'name', text: it.title }), sub),
       pick ? null : icon(it.orphan ? 'copy' : 'go-to-file', 'go'));
   }
@@ -264,19 +268,19 @@
     else if (m.targets.length && m.state === 'ready') kids.push(targeted(m));
     if (m.moves.length && !pick && m.state === 'ready') kids.push(refactor(m));
     if (m.attention.length) kids.push(...section('attention', 'Needs a look', m.attention.length, 'warning', 'warn', () => h('div', {}, m.attention.map(orow))));
-    if (m.drift.length && !pick) kids.push(...section('drift', 'Changed outside Terraform', m.drift.length, 'cloud', 'drift', () => h('div', {}, m.drift.map(driftRow)), m.sections.drift));
-    if (m.imports.length) kids.push(...section('imports', 'Imports', m.imports.length, '', '', () => h('div', {}, m.imports.map(row)), pick ? 'shown' : m.sections.imports));
+    if (m.drift.length && !pick) kids.push(...section('drift', 'Changed outside Terraform', m.drift.length, 'cloud', 'drift', () => h('div', { class: 'pl-box' }, m.drift.map(driftRow)), m.sections.drift));
+    if (m.imports.length) kids.push(...section('imports', 'Imports', m.imports.length, 'cloud-download', 'k-read', () => h('div', { class: 'pl-box' }, m.imports.map(row)), pick ? 'shown' : m.sections.imports));
     if (m.updates.length) {
-      kids.push(...section('updates', 'Updates', m.updates.length, '', '', () => {
+      kids.push(...section('updates', 'Updates', m.updates.length, 'edit', 'k-update', () => {
         const shown = showAllUpdates ? m.updates : m.updates.slice(0, MAX_UPDATES);
-        return h('div', {}, shown.map(row),
+        return h('div', { class: 'pl-box' }, shown.map(row),
           m.updates.length > shown.length ? h('button', { class: 'pl-more', onclick: () => { showAllUpdates = true; render(); } }, `Show ${m.updates.length - shown.length} more`) : null);
       }));
     }
-    if (m.creates.length) kids.push(...section('creates', 'Creates', m.creates.length, '', '', () => h('div', {}, m.creates.map(row))));
-    if (m.movedItems.length && !pick) kids.push(...section('moved', 'Moved', m.movedItems.length, '', '', () => h('div', {}, m.movedItems.map(row)), m.sections.moved));
-    if (m.reads.length && !pick) kids.push(...section('reads', 'Reads', m.reads.length, '', '', () => h('div', {}, m.reads.map(row)), m.sections.reads));
-    if (m.outputs.length && !pick) kids.push(...section('outputs', 'Outputs', m.outputs.length, '', '', () => h('div', {}, m.outputs.map(outputRow)), m.sections.outputs));
+    if (m.creates.length) kids.push(...section('creates', 'Creates', m.creates.length, 'add', 'k-create', () => h('div', { class: 'pl-box' }, m.creates.map(row))));
+    if (m.movedItems.length && !pick) kids.push(...section('moved', 'Moved', m.movedItems.length, 'arrow-swap', 'k-create', () => h('div', { class: 'pl-box' }, m.movedItems.map(row)), m.sections.moved));
+    if (m.reads.length && !pick) kids.push(...section('reads', 'Reads', m.reads.length, 'eye', 'k-read', () => h('div', { class: 'pl-box' }, m.reads.map(row)), m.sections.reads));
+    if (m.outputs.length && !pick) kids.push(...section('outputs', 'Outputs', m.outputs.length, 'symbol-property', '', () => h('div', { class: 'pl-box' }, m.outputs.map(outputRow)), m.sections.outputs));
     const quiet = [m.unchanged && `${m.unchanged} resource${m.unchanged > 1 ? 's' : ''} unchanged`, m.moved > m.movedItems.length && `${m.moved - m.movedItems.length} moved with other changes`].filter(Boolean);
     if (quiet.length && !pick) kids.push(h('div', { class: 'pl-quiet', text: quiet.join(' · ') }));
     if (!kids.length && m.state === 'ready') {
@@ -286,7 +290,7 @@
   }
 
   function empty(m) {
-    const kids = [h('div', { class: 'gl-empty' }, icon('checklist'), h('b', { text: 'No plan yet' }),
+    const kids = [h('div', { class: 'gl-empty' }, h('span', { class: 'pl-tile big' }, icon('checklist')), h('b', { text: 'No plan yet' }),
       h('span', { text: m.envs.length ? 'Run a plan for an environment, or load a plan file.' : `No environments in ${m.envFolder || 'this workspace'}.` }),
       m.envs.length ? null : h('button', { class: 'primary', onclick: () => post('envFolder') }, icon('folder-library'), h('span', { text: 'Pick environments folder…' })))];
     if (m.envs.length) {
@@ -350,8 +354,14 @@
     else if (m.applyOff) pair = [btn('primary', 'refresh', 'Re-plan', replan(m)), btn('', 'rocket', m.targets.length ? 'Apply targeted…' : `Apply${env}…`, 'apply')];
     else if (m.loaded) pair = [btn('primary', 'folder-opened', 'Load another', 'load'), btn('', 'output', 'Log', 'log')];
     else pair = [btn('primary', 'refresh', `Re-plan${env}`, replan(m)), btn('', 'output', 'Log', 'log')];
+    // Like an auto-approve bar: whether this plan can be applied from here, one click to the setting.
+    const allow = (m.settings.find((s) => s.key === 'allowApply') || {}).value;
+    const applyBar = m.state === 'ready' && !pick && !settingsOpen && !m.loaded
+      ? h('button', { class: 'pl-applybar', title: 'Apply from Plan Lens: change it in the settings', onclick: () => { settingsOpen = true; render(); } },
+        icon('shield'), h('span', { class: 'grow', text: 'Apply' }), h('span', { class: `pl-pill${allow ? ' on' : ''}`, text: allow ? 'On · this workspace' : 'Off' }), icon('chevron-right', 'go'))
+      : null;
     const note = m.state === 'running' ? (m.applying ? 'terraform apply is running — see the log' : 'terraform init, then plan…') : '';
-    return h('footer', { class: 'pl-foot' }, h('div', { class: 'gl-btn-pair' }, pair), note ? h('div', { class: 'note', text: note }) : null);
+    return h('footer', { class: 'pl-foot' }, applyBar, h('div', { class: 'gl-btn-pair' }, pair), note ? h('div', { class: 'note', text: note }) : null);
   }
 
   function render() {

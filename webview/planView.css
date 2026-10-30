@@ -53,8 +53,6 @@ body.plan { --gl-bg: var(--vscode-sideBar-background, var(--vscode-editor-backgr
 
 /* Second line: +2 ~5 ±2 −3 · origin · age (like Gitland's +51 −14). */
 .pl-meta { display: flex; align-items: center; gap: 8px; min-width: 0; margin: 2px 6px 0 0; font-size: 11px; color: var(--gl-muted); }
-.pl-meta .counts { display: flex; flex: none; gap: 7px; font-family: var(--gl-mono); }
-.pl-meta .counts b { font-weight: 600; color: var(--c); }
 .pl-meta .src { min-width: 0; }
 .pl-meta .rest { flex: none; white-space: pre; }
 .pl-split { display: flex; gap: 2px; height: 3px; margin: 8px 6px 0 0; border-radius: 2px; overflow: hidden; background: var(--gl-line-strong); }
@@ -242,3 +240,80 @@ body.plan { --gl-bg: var(--vscode-sideBar-background, var(--vscode-editor-backgr
 @media (prefers-reduced-motion: reduce) { .pl-switch > i { transition: none; } }
 .pl-input { flex: 1 1 140px; min-width: 0; height: 26px; padding: 0 10px; font: 12px var(--gl-mono); color: var(--vscode-input-foreground, var(--gl-fg)); background: var(--vscode-input-background, var(--gl-inset)); border: 1px solid var(--vscode-input-border, var(--gl-line-strong)); border-radius: 8px; }
 .pl-input:focus { outline: 1px solid var(--gl-accent); outline-offset: -1px; }
+
+/* =====================================================================================================================
+   Look: a plan card with stat pills and a bar strip (after task cards like Sixth's and Kilo Code's token chart), bold
+   icon headings, outlined boxes with tinted icon tiles, an apply bar and navy / blue buttons at the bottom.
+   ===================================================================================================================== */
+
+body.plan { font-size: 13px; }
+
+/* Plan card: lighter, raised, the one card of the view. */
+.pl-head { margin: 10px 10px 0; padding: 12px 10px 12px 14px; border-radius: 14px;
+  background: color-mix(in srgb, var(--gl-fg) 10%, var(--gl-bg));
+  box-shadow: 0 -10px 0 var(--gl-bg), 0 8px 22px -6px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.45)); }
+.pl-head .top { min-height: 26px; }
+.pl-env { height: 26px; gap: 7px; font-size: 14.5px; font-weight: 700; }
+.pl-env .codicon { font-size: 15px; }
+.pl-stats { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; }
+.pl-stat { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px; font-size: 12px; color: var(--gl-muted);
+  border: 1px solid var(--gl-line-strong); border-radius: 999px; background: color-mix(in srgb, var(--gl-bg) 45%, transparent); }
+.pl-stat b { font-family: var(--gl-mono); font-weight: 700; color: var(--c); }
+.pl-stat .codicon { font-size: 13px; color: var(--c); }
+.pl-meta { gap: 6px; margin: 9px 6px 0 1px; font-size: 11.5px; color: var(--gl-faint); }
+.pl-meta > .codicon { flex: none; font-size: 12px; }
+/* Bar strip: one bar per change, the riskier the taller. */
+.pl-strip { display: flex; align-items: flex-end; gap: 2px; height: 22px; margin: 11px 4px 0 1px; }
+.pl-strip > i { flex: 1 1 0; max-width: 18px; min-width: 2px; border-radius: 2px 2px 1px 1px; background: var(--c); opacity: 0.92; }
+.pl-strip > i.k-destroy { height: 100%; }
+.pl-strip > i.k-replace { height: 82%; }
+.pl-strip > i.k-update { height: 55%; }
+.pl-strip > i.k-create { height: 40%; }
+.pl-split { height: 4px; margin-top: 12px; }
+
+/* Bold icon headings, no rules. */
+.pl-body { padding: 0 10px; }
+.pl-body .gl-ck { margin: 20px 0 8px; padding: 0 2px; font-size: 13px; }
+.pl-body .gl-ck::after { display: none; }
+.pl-body .gl-ck .name { gap: 7px; font-weight: 700; color: var(--gl-fg); }
+.pl-body .gl-ck .name .codicon { font-size: 14px; }
+.pl-body .gl-ck .name .codicon.chev { font-size: 12px; color: var(--gl-faint); }
+.pl-body .gl-ck .name .k-create, .pl-body .gl-ck .name .k-update, .pl-body .gl-ck .name .k-read { color: var(--c); }
+.pl-body .gl-ck .n { font-size: 12px; }
+
+/* Risky changes: big outlined boxes with a tinted icon tile. */
+.pl-orow { min-height: 52px; gap: 11px; margin: 0 0 7px; padding: 10px 12px; border: 1px solid var(--gl-line-strong); border-radius: 12px; }
+.pl-orow:hover { border-color: color-mix(in srgb, var(--c) 45%, var(--gl-line-strong)); }
+.pl-orow .name { font-size: 13.5px; }
+.pl-orow .sub { margin-top: 4px; }
+.pl-tile { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 9px;
+  color: var(--c); background: color-mix(in srgb, var(--c) 16%, transparent); }
+.pl-tile > .codicon { font-size: 15px; }
+.pl-orow > .pl-tile { margin-top: 0; }
+.pl-tile.big { width: 44px; height: 44px; margin: 0 auto 10px; border-radius: 13px; --c: var(--gl-link); }
+.pl-tile.big > .codicon { font-size: 22px; }
+.gl-empty > .pl-tile.big { display: flex; }
+
+/* Every other list: one outlined box, dense rows inside. */
+.pl-box { padding: 4px; border: 1px solid var(--gl-line-strong); border-radius: 12px; }
+.pl-box .pl-row { min-height: 28px; padding: 0 8px 0 10px; border-radius: 8px; font-size: 13px; }
+.pl-box .pl-more { margin: 2px 0 2px 10px; }
+
+/* The refactor card and the settings page follow the same radius. */
+.pl-moves { border-radius: 14px; }
+
+/* Bottom: apply bar (like an auto-approve bar), then the two buttons. */
+.pl-foot { padding: 10px 10px 10px; }
+.pl-applybar { display: flex; width: 100%; height: 36px; justify-content: flex-start; gap: 8px; margin: 0 0 8px; padding: 0 10px 0 12px; font: inherit; font-size: 13px; text-align: left;
+  color: var(--gl-fg); background: color-mix(in srgb, var(--gl-fg) 6%, var(--gl-bg)); border: 1px solid var(--gl-line-strong); border-radius: 10px; }
+.pl-applybar:hover { background: color-mix(in srgb, var(--gl-fg) 10%, var(--gl-bg)); }
+.pl-applybar > .codicon:first-child { color: var(--gl-muted); }
+.pl-applybar .go { color: var(--gl-faint); }
+.pl-pill { flex: none; padding: 1px 9px; font-size: 11.5px; border-radius: 999px; color: var(--gl-muted); background: var(--gl-line-strong); }
+.pl-pill.on { color: var(--vscode-button-foreground, #fff); background: var(--vscode-button-background, var(--gl-accent)); }
+.pl-foot .gl-btn-pair > button { height: 36px; font-size: 13.5px; border-radius: 8px; }
+.pl-foot .gl-btn-pair > button:not(.primary), .pl-moves .gl-btn-pair > button:not(.primary) {
+  color: var(--gl-fg); background: color-mix(in srgb, var(--vscode-button-background, #0078d4) 22%, var(--gl-bg));
+  border: 1px solid color-mix(in srgb, var(--vscode-button-background, #0078d4) 50%, transparent); }
+.pl-foot .gl-btn-pair > button:not(.primary):hover:not(:disabled), .pl-moves .gl-btn-pair > button:not(.primary):hover:not(:disabled) {
+  background: color-mix(in srgb, var(--vscode-button-background, #0078d4) 34%, var(--gl-bg)); }

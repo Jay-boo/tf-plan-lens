@@ -35,10 +35,10 @@ const html = (theme) => page0
   .replace('<link rel="stylesheet" href="vendor/codicon.css">', `<link rel="stylesheet" href="__theme-${theme}.css"><link rel="stylesheet" href="vendor/codicon.css">`)
   .replace('<script nonce="{{nonce}}" src="{{js}}"></script>', `<script nonce="render" src="__stub.js"></script><script nonce="render" src="planView.js"></script>`)
   .replace(/\{\{cspSource\}\}/g, 'file:').replace(/\{\{nonce\}\}/g, 'render')
-  .replace('<body>', `<body class="${themes[theme].cls}">`);
+  .replace('<body class="plan">', `<body class="plan ${themes[theme].cls}">`);
 
 mkdirSync(join(root, 'out-render'), { recursive: true });
-writeFileSync(join(root, 'webview/__stub.js'), 'window.acquireVsCodeApi = () => ({ postMessage: (m) => (window.__posted = [...(window.__posted || []), m]) });');
+writeFileSync(join(root, 'webview/__stub.js'), 'window.acquireVsCodeApi = () => ({ getState: () => undefined, setState: () => {}, postMessage: (m) => (window.__posted = [...(window.__posted || []), m]) });');
 const browser = await chromium.launch();
 let failures = 0;
 for (const theme of Object.keys(themes)) {
@@ -60,6 +60,20 @@ for (const theme of Object.keys(themes)) {
       }
       if (name !== 'large') await page.screenshot({ path: join(root, `out-render/${name}-${theme}-${width}.png`), fullPage: true });
     }
+    // Pick mode: pick a module and a resource, check the overflow, and that Plan posts the targets.
+    await page.evaluate((m) => { window.__posted = []; window.postMessage({ type: 'model', model: m }, '*'); }, fixtures.apply);
+    await page.waitForTimeout(120);
+    await page.click('button[title^="Pick targets"]');
+    await page.click('.pl-mod[data-address="module.storage"]');
+    await page.click('[data-address="databricks_catalog.diapason_fresh"]');
+    const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    if (over > 0) { failures++; console.log(`OVERFLOW ${theme} ${width} picking: ${over}px`); }
+    await page.screenshot({ path: join(root, `out-render/picking-${theme}-${width}.png`), fullPage: true });
+    await page.click('.pl-foot button.primary');
+    const run = await page.evaluate(() => window.__posted.at(-1));
+    if (JSON.stringify(run) !== JSON.stringify({ type: 'run', targets: ['module.storage', 'databricks_catalog.diapason_fresh'] })) {
+      failures++; console.log(`PICK ${theme} ${width}: posted ${JSON.stringify(run)}`);
+    }
     await page.close();
   }
 }
@@ -67,5 +81,5 @@ await browser.close();
 if (!process.env.KEEP) {
   for (const f of ['__stub.js', ...Object.keys(themes).flatMap((t) => [`__render-${t}.html`, `__theme-${t}.css`])]) require('node:fs').rmSync(join(root, 'webview', f));
 }
-console.log(failures ? `${failures} overflow(s)` : 'render ok: no overflow');
+console.log(failures ? `${failures} failure(s)` : 'render ok: no overflow');
 process.exit(failures ? 1 : 0);

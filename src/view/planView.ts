@@ -1,24 +1,29 @@
 import { randomBytes } from 'node:crypto';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
+import { PlanLog } from '../log';
 import { toViewModel } from '../model/viewModel';
 import { PlanStore } from '../state';
 
 export type ViewMessage =
-  | { type: 'ready' | 'run' | 'load' | 'cancel' | 'clear' | 'log' | 'pickEnv'; env?: string }
+  | { type: 'ready' | 'load' | 'cancel' | 'clear' | 'log' | 'pickEnv' | 'apply' | 'envFolder' | 'settings'; env?: string }
+  /** targets: re-plan with -target (a targeted Re-plan keeps them; none is a full plan). */
+  | { type: 'run'; env?: string; targets?: string[] }
   | { type: 'open' | 'copy'; address: string };
 
 export class PlanViewProvider implements vscode.WebviewViewProvider {
   static readonly id = 'planLens.view';
   private view?: vscode.WebviewView;
+  private tailTimer?: NodeJS.Timeout;
 
   constructor(
     private readonly ctx: vscode.ExtensionContext,
     private readonly store: PlanStore,
-    private readonly envNames: () => string[],
+    private readonly log: PlanLog,
+    private readonly info: () => { envs: string[]; envFolder: string; canApply: boolean; applyOff: boolean },
     private readonly onMessage: (m: ViewMessage) => void,
   ) {
-    ctx.subscriptions.push(store.onDidChange(() => this.post()));
+    ctx.subscriptions.push(store.onDidChange(() => this.post()), log.onDidAppend(() => this.postTail()), { dispose: () => clearTimeout(this.tailTimer) });
   }
 
   resolveWebviewView(view: vscode.WebviewView): void {
@@ -40,16 +45,32 @@ export class PlanViewProvider implements vscode.WebviewViewProvider {
   post(): void {
     if (!this.view) return;
     const s = this.store;
+    const info = this.info();
     const model = toViewModel(s.plan, {
       env: s.plan?.env || s.env?.name,
-      envs: this.envNames(),
+      runEnv: s.running ? s.runEnv : undefined,
+      envs: info.envs,
+      envFolder: info.envFolder,
+      canApply: info.canApply,
+      applyOff: info.applyOff,
       running: s.running,
+      applying: s.applying,
       now: Date.now(),
       rootName: s.root ? path.basename(s.root) : '',
       locate: (c) => s.locate(c.address),
       error: s.error,
+      tail: s.running ? this.log.tail() : [],
     });
     void this.view.webview.postMessage({ type: 'model', model });
+  }
+
+  /** The live log tail while a run goes, at most every 150 ms; only the tail box changes, not the whole view. */
+  private postTail(): void {
+    if (this.tailTimer || !this.store.running) return;
+    this.tailTimer = setTimeout(() => {
+      this.tailTimer = undefined;
+      void this.view?.webview.postMessage({ type: 'tail', lines: this.log.tail() });
+    }, 150);
   }
 
   private html(webview: vscode.Webview, root: vscode.Uri): string {

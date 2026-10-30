@@ -3,36 +3,66 @@ import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import { Env, dataDir, isAzureAuthError, lastErrorLine, planArgs } from './model/envs';
+import { PlanLog } from './log';
+import { Env, StateLock, applyArgs, dataDir, isAzureAuthError, lastErrorLine, planArgs, stateLock, unlockArgs } from './model/envs';
 
 export class RunError extends Error {
+  /** Set when terraform could not take the remote state lock (another run holds it, or a killed one left it). */
+  lock?: StateLock;
+
   constructor(message: string, readonly azureAuth: boolean, readonly cancelled = false) {
     super(message);
   }
 }
 
-/** Runs terraform init / plan / show. Never anything that writes infrastructure or state. */
+/** A plan run's saved plan file, kept until it is applied or replaced (it is what Apply applies). */
+export interface SavedPlan {
+  root: string;
+  env: Env;
+  file: string;
+}
+
+/** Runs terraform init / plan / show, and apply of a saved plan (only when the user asks, see extension.ts). */
 export class Runner {
   constructor(
-    private readonly out: vscode.OutputChannel,
+    private readonly out: PlanLog,
     private readonly globalStorage: string,
     private readonly tfPath: () => string,
   ) {}
 
-  async runPlan(root: string, env: Env, token: vscode.CancellationToken): Promise<unknown> {
+  async runPlan(root: string, env: Env, token: vscode.CancellationToken, targets: string[] = []): Promise<{ json: unknown; saved: SavedPlan }> {
     const tfData = dataDir(this.globalStorage, root, env.name);
     await mkdir(tfData, { recursive: true });
     const tmp = await mkdtemp(path.join(os.tmpdir(), 'plan-lens-'));
     const planFile = path.join(tmp, 'plan.bin');
-    const args = planArgs(env, planFile);
-    this.out.appendLine(`── Plan ${env.name} · ${new Date().toLocaleTimeString()} ──`);
+    const args = planArgs(env, planFile, targets);
+    this.out.heading(`── ${targets.length ? `Targeted plan (${targets.length})` : 'Plan'} ${env.name} · ${new Date().toLocaleTimeString()} ──`);
     try {
       await this.exec(root, args.init, tfData, token);
       await this.exec(root, args.plan, tfData, token);
-      return JSON.parse(await this.exec(root, args.show, tfData, token, true));
-    } finally {
+      const json = JSON.parse(await this.exec(root, args.show, tfData, token, true));
+      return { json, saved: { root, env, file: planFile } };
+    } catch (e) {
       await rm(tmp, { recursive: true, force: true });
+      throw e;
     }
+  }
+
+  /** terraform apply of the saved plan, with the init the plan ran under. */
+  async apply(saved: SavedPlan, token: vscode.CancellationToken): Promise<void> {
+    this.out.heading(`── Apply ${saved.env.name} · ${new Date().toLocaleTimeString()} ──`);
+    await this.exec(saved.root, applyArgs(saved.file), dataDir(this.globalStorage, saved.root, saved.env.name), token, false, 'Apply');
+  }
+
+  /** terraform force-unlock of the env's remote state, under the init its plan ran with. */
+  async forceUnlock(root: string, env: Env, id: string, token: vscode.CancellationToken): Promise<void> {
+    this.out.heading(`── Unlock ${env.name} · ${new Date().toLocaleTimeString()} ──`);
+    await this.exec(root, unlockArgs(id), dataDir(this.globalStorage, root, env.name), token, false, 'Unlock');
+  }
+
+  /** Deletes a saved plan file (it can hold secrets in clear). */
+  async discard(saved: SavedPlan | undefined): Promise<void> {
+    if (saved) await rm(path.dirname(saved.file), { recursive: true, force: true });
   }
 
   /** Converts a binary plan with the root's providers (needs a prior init in the user's own .terraform). */
@@ -45,8 +75,8 @@ export class Runner {
     }
   }
 
-  private exec(cwd: string, args: string[], tfData: string | undefined, token: vscode.CancellationToken, quiet = false): Promise<string> {
-    this.out.appendLine(`$ terraform ${args.join(' ')}`);
+  private exec(cwd: string, args: string[], tfData: string | undefined, token: vscode.CancellationToken, quiet = false, what = 'Plan'): Promise<string> {
+    this.out.command(`terraform ${args.join(' ')}`);
     return new Promise((resolve, reject) => {
       const env: NodeJS.ProcessEnv = { ...process.env, TF_IN_AUTOMATION: '1', TF_CLI_ARGS: '' };
       if (tfData) env.TF_DATA_DIR = tfData;
@@ -71,10 +101,12 @@ export class Runner {
       });
       child.on('close', (code) => {
         sub.dispose();
-        if (token.isCancellationRequested) return reject(new RunError('Plan cancelled', false, true));
+        if (token.isCancellationRequested) return reject(new RunError(`${what} cancelled`, false, true));
         if (code === 0) return resolve(stdout);
         const text = stderr || stdout;
-        reject(new RunError(lastErrorLine(text) || `terraform ${args[0]} failed (${code})`, isAzureAuthError(text)));
+        const err = new RunError(lastErrorLine(text) || `terraform ${args[0]} failed (${code})`, isAzureAuthError(text));
+        err.lock = stateLock(text);
+        reject(err);
       });
     });
   }

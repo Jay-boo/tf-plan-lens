@@ -1,29 +1,20 @@
-/* Plan Lens sidebar: Sixth v2 (base.css) plus the plan's action colours. Theme colours only. */
+/* Plan Lens sidebar: Gitland's look (base.css) plus the plan's action colours. Theme colours only. */
 :root {
-  --pl-create: var(--vscode-planLens-create, var(--pl-success));
-  --pl-update: var(--vscode-planLens-update, var(--pl-skipped));
-  --pl-replace: var(--vscode-planLens-replace, var(--pl-glyph));
-  --pl-destroy: var(--vscode-planLens-destroy, var(--pl-failed));
-  --pl-read: var(--vscode-planLens-read, var(--pl-running));
+  --pl-create: var(--vscode-planLens-create, var(--gl-ok));
+  --pl-update: var(--vscode-planLens-update, var(--gl-release));
+  --pl-replace: var(--vscode-planLens-replace, var(--gl-orange));
+  --pl-destroy: var(--vscode-planLens-destroy, var(--gl-err));
+  --pl-read: var(--vscode-planLens-read, var(--gl-main));
 }
 
-* { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; overflow-x: hidden; }
-body {
-  padding: 4px 14px 16px;
-  font-family: var(--pl-font);
-  font-size: var(--vscode-font-size, 13px);
-  line-height: 1.4;
-  color: var(--pl-fg);
-  background: transparent;
-}
-button { font: inherit; }
-.codicon { font-size: 15px; }
+/* Like Gitland's Changes view: sidebar background, a sticky header card, a pinned action bar at the bottom. */
+html, body.plan { height: 100%; }
+body.plan { --gl-bg: var(--vscode-sideBar-background, var(--vscode-editor-background)); display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden; background: var(--gl-bg); }
+#app { display: flex; flex-direction: column; flex: 1 0 auto; min-height: 100%; }
+#app > * { flex: none; }
 .grow { flex: 1; min-width: 0; }
-.muted { color: var(--pl-muted); }
-.faint { color: var(--pl-faint); }
-.mono { font-family: var(--pl-mono); font-size: 12px; }
 .ell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.faint { color: var(--gl-faint); }
 
 .k-create { --c: var(--pl-create); }
 .k-update { --c: var(--pl-update); }
@@ -32,78 +23,135 @@ button { font: inherit; }
 .k-read { --c: var(--pl-read); }
 .tc { color: var(--c); }
 
-/* Context bar: environment pill + Run | Load. */
-.pl-ctxbar { height: 40px; gap: 10px; padding: 0 8px 0 12px; }
-.pl-ctxbar .pl-pill { cursor: pointer; }
-.pl-ctxbar .pl-pill:hover { filter: brightness(1.15); }
-.pl-ctxbar .pl-pill .codicon { font-size: 12px; }
-.pl-ctxbar .pl-pill.none { color: var(--pl-muted); }
-@media (max-width: 300px) { .pl-seg .lbl { display: none; } }
+/* ---------- header card (Gitland's branch bar) ---------- */
 
-/* The Plan card. */
-.pl-task { margin-top: 12px; }
-.pl-task .head { display: flex; align-items: center; gap: 8px; }
-.pl-task .head > .codicon { color: var(--pl-bright); }
-.pl-task .sub { margin-top: 2px; font-size: 12px; color: var(--pl-muted); }
-.pl-task .sub.meta { display: flex; min-width: 0; }
-.pl-task .sub.meta .rest { flex: none; white-space: pre; }
-.pl-task .err { display: flex; gap: 6px; margin-top: 8px; font-size: 12px; color: var(--pl-failed); }
-.pl-task .err .codicon { font-size: 13px; margin-top: 1px; }
-.pl-stats { margin: 10px 0; gap: 5px; }
-.pl-stat { padding: 0 7px; gap: 4px; }
-.pl-stat b { font-weight: 700; color: var(--c, var(--pl-bright)); }
-.pl-split { display: flex; gap: 2px; height: 4px; border-radius: 2px; overflow: hidden; background: color-mix(in srgb, var(--pl-fg) 25%, transparent); }
+.pl-head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  margin: 8px 8px 0;
+  padding: 8px 6px 8px 12px;
+  background: var(--gl-card);
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-card);
+  box-shadow: 0 -8px 0 var(--gl-bg);
+}
+.pl-head .top { display: flex; align-items: center; gap: 2px; min-height: 22px; }
+.pl-env {
+  flex: 0 1 auto; min-width: 0; height: 22px; padding: 0 4px 0 0; gap: 6px;
+  font-weight: 600; color: var(--gl-fg); background: transparent; border: none;
+}
+.pl-env:hover { background: transparent; color: var(--gl-link); }
+.pl-env > .codicon:first-child { color: var(--gl-muted); }
+.pl-env > .codicon:last-child { font-size: 11px; color: var(--gl-faint); }
+.pl-env .lbl { overflow: hidden; text-overflow: ellipsis; }
+.pl-env.none .lbl { font-weight: normal; color: var(--gl-muted); }
+.pl-state { flex: none; margin-left: 4px; font-size: 12px; color: var(--gl-muted); }
+.pl-state.ok { color: var(--gl-ok); }
+.pl-state.err { color: var(--gl-err); }
+.pl-head .grow { min-width: 4px; }
+
+/* Second line: +2 ~5 ±2 −3 · origin · age (like Gitland's +51 −14). */
+.pl-meta { display: flex; align-items: center; gap: 8px; min-width: 0; margin: 2px 6px 0 0; font-size: 11px; color: var(--gl-muted); }
+.pl-meta .counts { display: flex; flex: none; gap: 7px; font-family: var(--gl-mono); }
+.pl-meta .counts b { font-weight: 600; color: var(--c); }
+.pl-meta .src { min-width: 0; }
+.pl-meta .rest { flex: none; white-space: pre; }
+.pl-split { display: flex; gap: 2px; height: 3px; margin: 8px 6px 0 0; border-radius: 2px; overflow: hidden; background: var(--gl-line-strong); }
 .pl-split > i { display: block; height: 100%; background: var(--c); }
 .pl-split.busy { position: relative; }
-.pl-split.busy > i { position: absolute; left: -40%; width: 40%; background: var(--pl-running); animation: pl-slide 1.2s ease-in-out infinite; }
+.pl-split.busy > i { position: absolute; left: -40%; width: 40%; background: var(--gl-main); animation: pl-slide 1.2s ease-in-out infinite; }
+.pl-split.busy.apply > i { background: var(--pl-replace); }
 @keyframes pl-slide { to { left: 100%; } }
 @media (prefers-reduced-motion: reduce) { .pl-split.busy > i { animation: none; left: 0; width: 100%; opacity: 0.6; } }
-.pl-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-.pl-btns .primary { flex: 1; }
-.pl-icon-btn {
-  display: inline-flex; align-items: center; justify-content: center; flex: none;
-  width: 22px; height: 22px; padding: 0; border: none; border-radius: 5px;
-  color: var(--pl-muted); background: transparent; cursor: pointer;
-}
-.pl-icon-btn:hover { color: var(--pl-fg); background: var(--pl-hover); }
+
+/* Live log tail while running: the last lines, click for the full log. */
+.pl-tail { display: block; width: calc(100% - 6px); height: auto; margin: 8px 6px 0 0; padding: 6px 8px; max-height: calc(6 * 1.45em + 12px); overflow: hidden;
+  font: 11px/1.45 var(--gl-mono); color: var(--gl-muted); text-align: left; white-space: pre; text-overflow: ellipsis;
+  background: var(--vscode-textCodeBlock-background, rgba(127, 127, 127, 0.1)); border: 1px solid var(--gl-line-strong); border-radius: 6px; cursor: pointer; }
+.pl-tail:hover { color: var(--gl-fg); background: var(--vscode-textCodeBlock-background, rgba(127, 127, 127, 0.1)); border-color: var(--gl-main); }
+
+/* Busy / error line under the card. */
+.pl-line { display: flex; align-items: flex-start; gap: 6px; padding: 8px 14px 0; font-size: 11.5px; line-height: 1.45; color: var(--gl-muted); }
+.pl-line .codicon { flex: none; margin-top: 2px; }
+.pl-line.err { color: var(--gl-err); }
+.pl-line.err span { word-break: break-word; }
+
+/* ---------- body ---------- */
+
+.pl-body { padding: 0 8px; }
+.pl-body .gl-ck { margin: 14px 0 6px; padding: 0 2px 0 4px; cursor: pointer; user-select: none; }
+.gl-ck .name .codicon { font-size: 12px; }
+.gl-ck .n { flex: none; font-size: 11px; color: var(--gl-faint); }
+.gl-ck .n::before { content: '· '; }
+.gl-ck.shut .chev { transform: rotate(-90deg); }
+.gl-ck .warn { color: var(--pl-replace); }
+
+/* Risky changes: outlined two-line rows (Gitland's pipeline rows). */
+.pl-orow { width: 100%; height: auto; justify-content: flex-start; align-items: flex-start; gap: 10px; padding: 7px 10px; font: inherit; text-align: left; color: inherit; background: transparent; white-space: normal; }
+.pl-orow:hover { background: var(--gl-hover); }
+.pl-orow > .codicon { flex: none; margin-top: 3px; font-size: 14px; color: var(--c); }
+.pl-orow .name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--gl-fg); }
+.pl-orow .sub { display: flex; align-items: center; gap: 6px; min-width: 0; margin-top: 3px; font-size: 11.5px; color: var(--gl-muted); }
+.pl-orow .sub > span { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The module path gives way first, so the reason stays readable. */
+.pl-orow .sub > span.faint { flex: 1 1 0; }
+.pl-orow .sub .gl-chip { --c: inherit; }
+.pl-orow .go { flex: none; margin-top: 3px; color: var(--gl-faint); visibility: hidden; }
+.pl-orow:hover .go, .pl-orow:focus-visible .go { visibility: visible; }
+.gl-chip.k-replace, .gl-chip.k-destroy, .gl-chip.k-forget { color: var(--c); }
+.gl-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c); }
+.mono { font-family: var(--gl-mono); font-size: 11.5px; }
+.hl { color: var(--gl-fg); }
+
+/* Everything else: Gitland's dense file rows — name, faint detail, the Terraform symbol on the right. */
+.pl-row { display: flex; width: 100%; height: auto; min-height: 22px; justify-content: flex-start; gap: 6px; padding: 0 6px 0 8px; font: inherit; text-align: left; color: inherit; background: transparent; border: 1px solid transparent; border-radius: 5px; }
+.pl-row:hover { background: var(--gl-hover); border-color: var(--vscode-contrastActiveBorder, transparent); }
+.pl-row .name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--gl-fg); }
+.pl-row .dir { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11.5px; color: var(--gl-faint); }
+.pl-row .dir.mono { color: var(--gl-muted); }
+.pl-row .loc { flex: none; font-size: 11px; color: var(--gl-faint); }
+.sym { flex: none; width: 22px; text-align: right; font-family: var(--gl-mono); font-size: 11.5px; font-weight: 700; color: var(--c); }
+.pl-orow.flash, .pl-row.flash { outline: 1px solid var(--gl-accent); outline-offset: -1px; background: var(--gl-hover); }
+
+.pl-more { display: block; height: 22px; margin: 2px 0 0 8px; padding: 0; font-size: 11.5px; color: var(--gl-link); background: transparent; border: none; }
+.pl-more:hover { background: transparent; text-decoration: underline; }
+.pl-quiet { margin: 14px 4px 0; font-size: 11px; color: var(--gl-faint); }
+
+/* Targeting: a targeted plan's banner, pick mode's checks, dependencies terraform pulled in. */
+.pl-target { display: flex; align-items: center; gap: 6px; margin: 8px 0 2px; padding: 4px 4px 4px 10px; font-size: 11.5px; color: var(--gl-muted); border: 1px solid color-mix(in srgb, var(--gl-accent) 55%, transparent); border-radius: var(--gl-radius-card); background: color-mix(in srgb, var(--gl-accent) 8%, transparent); }
+.pl-target > .codicon { flex: none; color: var(--gl-link); }
+.pl-target b { font-weight: 600; color: var(--gl-fg); }
+.pl-target button { flex: none; height: 20px; padding: 0 6px; font-size: 11px; }
+.pk { flex: none; font-size: 14px; color: var(--gl-faint); }
+.pl-row .pk { align-self: center; font-size: 13px; }
+.pl-orow > .codicon.pk { color: var(--gl-faint); }
+.pk.on, .pl-orow > .codicon.pk.on { color: var(--gl-link); }
+.picking.picked { background: color-mix(in srgb, var(--gl-accent) 10%, transparent); }
+.pl-mod .name { font-family: var(--gl-mono); font-size: 11.5px; }
+.pl-dep { flex: none; padding: 0 5px; font-size: 10.5px; line-height: 15px; color: var(--gl-muted); border: 1px dashed var(--gl-line-strong); border-radius: 8px; }
+.pl-row .pl-dep { align-self: center; }
+.pulled:not(.picking) .name { color: var(--gl-muted); }
+
+/* Empty state: Gitland's gl-empty, then the environments as outlined rows. */
+.pl-body .gl-empty { margin: 8px 0 0; padding: 18px 12px 8px; }
+.pl-env-row { width: 100%; height: auto; justify-content: flex-start; gap: 8px; font: inherit; color: inherit; text-align: left; background: transparent; }
+.pl-env-row:hover { background: var(--gl-hover); }
+.pl-env-row > .codicon:first-child { color: var(--gl-muted); }
+.pl-env-row .play { color: var(--gl-faint); }
+.pl-env-row:hover .play { color: var(--gl-ok); }
+.pl-env-row.cur { border-color: color-mix(in srgb, var(--gl-accent) 60%, transparent); }
+.pl-env-row.cur > .codicon:first-child { color: var(--gl-link); }
+.pl-src { display: flex; align-items: center; gap: 6px; margin: 6px 4px 0; font-size: 11px; color: var(--gl-faint); }
+.pl-src .codicon { font-size: 12px; }
+.pl-src button { height: 20px; padding: 0 4px; font-size: 11px; }
+
+/* ---------- action bar pinned at the bottom (Gitland's commit bar) ---------- */
+
+.pl-foot { position: sticky; bottom: 0; z-index: 2; margin-top: auto; padding: 10px 8px 8px; background: var(--gl-bg); box-shadow: 0 -10px 10px -2px var(--gl-bg); }
+.pl-foot .gl-btn-pair > button { overflow: hidden; }
+.pl-foot .gl-btn-pair > button > span { overflow: hidden; text-overflow: ellipsis; }
+.pl-foot .note { margin: 6px 2px 0; font-size: 11px; color: var(--gl-faint); }
+
 .spin { animation: pl-spin 1s linear infinite; }
 @keyframes pl-spin { to { transform: rotate(360deg); } }
-
-/* Change boxes. */
-.pl-hd { margin-top: 18px; }
-.pl-box { width: 100%; text-align: left; font: inherit; color: inherit; background: transparent; }
-.pl-box.hot {
-  border-color: color-mix(in srgb, var(--c) 55%, var(--pl-line-strong));
-  background: color-mix(in srgb, var(--c) 7%, transparent);
-}
-.pl-box.hot:hover { background: color-mix(in srgb, var(--c) 12%, transparent); }
-.pl-box.flash { outline: 2px solid var(--pl-accent); outline-offset: 1px; }
-.pl-box .go { flex: none; color: var(--pl-muted); font-size: 14px; }
-.pl-glyph {
-  display: inline-flex; align-items: center; justify-content: center; flex: none;
-  width: 26px; height: 26px; border-radius: 7px;
-  color: var(--c); background: color-mix(in srgb, var(--c) 16%, transparent);
-  border: 1px solid var(--pl-border);
-}
-.pl-glyph .codicon { font-size: 14px; }
-.pl-chip { color: var(--c); }
-.pl-more {
-  display: inline-block; margin: -2px 0 0 4px; padding: 0; border: none; background: none;
-  font-size: 12px; color: var(--pl-faint); cursor: pointer;
-}
-.pl-more:hover { color: var(--pl-fg); text-decoration: underline; }
-
-/* Compact rows (creates, reads). */
-.pl-orow { width: 100%; font: inherit; font-size: 12.5px; color: inherit; text-align: left; background: transparent; padding: 5px 10px; }
-.pl-orow .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
-.pl-orow .name { color: var(--pl-bright); }
-.pl-orow .loc { flex: none; color: var(--pl-faint); font-size: 12px; }
-
-.pl-ck .name { font-weight: 600; }
-
-/* Empty state environment list. */
-.pl-envs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-.pl-envs button { cursor: pointer; }
-.pl-hint { margin-top: 10px; font-size: 12px; color: var(--pl-faint); }
-
-button:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: 1px; }

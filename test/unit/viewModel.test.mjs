@@ -87,3 +87,59 @@ test('error', () => {
   assert.equal(v.state, 'empty');
   assert.equal(vm.error, undefined);
 });
+
+test('targeting: a run plan can be targeted, a loaded one cannot', () => {
+  assert.equal(vm.canTarget, true);
+  assert.deepEqual(vm.targets, []);
+  assert.equal(vm.pulled, 0);
+  const loaded = toViewModel({ ...plan, env: '', source: '/x/tfplan.json' }, { envs: [], running: false, now: 0, rootName: 'x', locate: () => undefined });
+  assert.equal(loaded.canTarget, false);
+  assert.equal(toViewModel(plan, { env: 'QUAL', envs: [], running: true, now: 0, rootName: 'x', locate: () => undefined }).canTarget, false);
+});
+
+test('targeting: modules to pick from, without data reads', () => {
+  assert.deepEqual(vm.modules, [
+    { address: 'module.kv', n: 1 },
+    { address: 'module.lakebase["fresh"]', n: 1 },
+    { address: 'module.lakebase["main"]', n: 1 },
+    { address: 'module.remote', n: 1 },
+    { address: 'module.storage', n: 3 },
+    { address: 'module.unitycatalog', n: 1 },
+    { address: 'module.unitycatalog.module.inner', n: 1 },
+  ]);
+});
+
+test('targeting: a targeted plan marks what terraform pulled in', () => {
+  const t = toViewModel({ ...plan, targets: ['module.storage'] }, { env: 'QUAL', envs: [], running: false, now: 0, rootName: 'x', locate: () => undefined });
+  assert.deepEqual(t.targets, ['module.storage']);
+  const all = [...t.attention, ...t.updates, ...t.creates];
+  for (const i of all) assert.equal(!!i.pulled, !i.address.startsWith('module.storage.'), i.address);
+  assert.equal(t.pulled, all.filter((i) => i.pulled).length);
+  assert.ok(t.reads.every((i) => !i.pulled));
+});
+
+test('apply turned off: a run plan with changes still offers Apply (to explain the setting)', () => {
+  const o = { env: 'QUAL', envs: [], running: false, now: 0, rootName: 'x', locate: () => undefined };
+  assert.equal(toViewModel(plan, { ...o, applyOff: true }).applyOff, true);
+  assert.equal(toViewModel(plan, { ...o, applyOff: true, canApply: true }).applyOff, false);
+  assert.equal(toViewModel(plan, { ...o, applyOff: true, running: true }).applyOff, false);
+  assert.equal(toViewModel({ ...plan, changes: plan.changes.filter((c) => c.action === 'read') }, { ...o, applyOff: true }).applyOff, false);
+  assert.equal(vm.applyOff, false);
+});
+
+test('running another env: header shows the env being run, not the loaded plan', () => {
+  const v = toViewModel(plan, { env: 'QUAL', runEnv: 'PROD/dev', envs: ['PROD/dev', 'QUAL'], running: true, now: 60_000, rootName: 'DataPlatformRessources', locate: () => undefined });
+  assert.equal(v.state, 'running');
+  assert.equal(v.env, 'PROD/dev');
+  assert.equal(v.title, 'Plan · PROD/dev');
+  assert.equal(v.sub, '');
+  assert.deepEqual(v.counts, { create: 0, update: 0, replace: 0, destroy: 0 });
+  assert.equal(v.unchanged, 0);
+});
+
+test('re-running the same env keeps the previous plan on screen', () => {
+  const v = toViewModel(plan, { env: 'QUAL', runEnv: 'QUAL', envs: ['PROD/dev', 'QUAL'], running: true, now: 60_000, rootName: 'DataPlatformRessources', locate: () => undefined });
+  assert.equal(v.env, 'QUAL');
+  assert.equal(v.title, 'Plan · QUAL');
+  assert.equal(v.counts.update, 5);
+});

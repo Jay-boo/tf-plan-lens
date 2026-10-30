@@ -2,7 +2,7 @@
   "name": "tf-plan-lens",
   "displayName": "Terraform Plan Lens",
   "description": "See your Terraform plan on the code: what each resource block will create, update, replace or destroy, with the risky changes first.",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "publisher": "jay-boo",
   "license": "MIT",
   "engines": {
@@ -164,6 +164,24 @@
         "category": "Plan Lens"
       },
       {
+        "command": "planLens.setEnvFolder",
+        "title": "Set environments folder…",
+        "category": "Plan Lens",
+        "icon": "$(folder-library)"
+      },
+      {
+        "command": "planLens.targetPlan",
+        "title": "Plan with targets…",
+        "category": "Plan Lens",
+        "icon": "$(target)"
+      },
+      {
+        "command": "planLens.apply",
+        "title": "Apply plan…",
+        "category": "Plan Lens",
+        "icon": "$(rocket)"
+      },
+      {
         "command": "planLens.clear",
         "title": "Clear plan",
         "category": "Plan Lens",
@@ -204,6 +222,21 @@
           "group": "1_plan@2"
         },
         {
+          "command": "planLens.setEnvFolder",
+          "when": "view == planLens.view",
+          "group": "1_plan@3"
+        },
+        {
+          "command": "planLens.targetPlan",
+          "when": "view == planLens.view",
+          "group": "1_plan@4"
+        },
+        {
+          "command": "planLens.apply",
+          "when": "view == planLens.view && config.planLens.allowApply",
+          "group": "1_plan@5"
+        },
+        {
           "command": "planLens.clear",
           "when": "view == planLens.view",
           "group": "2_misc@1"
@@ -222,16 +255,26 @@
         {
           "command": "planLens.copyAddress",
           "when": "false"
+        },
+        {
+          "command": "planLens.apply",
+          "when": "config.planLens.allowApply"
         }
       ]
     },
     "configuration": {
       "title": "Terraform Plan Lens",
       "properties": {
+        "planLens.environmentsFolder": {
+          "type": "string",
+          "default": "",
+          "scope": "resource",
+          "markdownDescription": "Folder that holds the environments (absolute, or relative to the first workspace folder). Each subfolder with a `terraform.tfvars`, and each `*.tfvars` file in it, is an environment (`*.auto.tfvars` excepted); a `backend.conf` (or `<env>.backend.conf`) next to it is used for init. Overrides `#planLens.environmentGlob#`. Set it with **Plan Lens: Set environments folder…**."
+        },
         "planLens.environmentGlob": {
           "type": "string",
           "default": "environments/**/terraform.tfvars",
-          "description": "Glob (from the workspace) of the tfvars files that define environments. A backend.conf next to one is used for init."
+          "markdownDescription": "Glob (from the workspace) of the tfvars files that define environments, used when `#planLens.environmentsFolder#` is empty. A `backend.conf` next to one is used for init."
         },
         "planLens.root": {
           "type": "string",
@@ -242,6 +285,11 @@
           "type": "string",
           "default": "terraform",
           "description": "Terraform binary."
+        },
+        "planLens.allowApply": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Show an **Apply** button after a plan run from Plan Lens. It runs `terraform apply` on that exact saved plan, after a confirmation (and typing the environment name when the plan destroys or replaces something), then plans again."
         },
         "planLens.showUnchanged": {
           "type": "boolean",

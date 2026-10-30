@@ -44,4 +44,6 @@ export interface Plan {
   changes: Change[];
   /** Module path joined with '.' → folder relative to the root (posix). Local sources only. */
   moduleDirs: Record<string, string>;
+  /** The -target addresses the plan was run with; absent for a full plan. */
+  targets?: string[];
 }

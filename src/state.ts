@@ -20,6 +20,10 @@ export class PlanStore implements PlanState, vscode.Disposable {
   root?: string;
   env?: Env;
   running = false;
+  /** The running task is an apply (running is true too). */
+  applying = false;
+  /** The env the running task is for; unset when nothing runs. */
+  runEnv?: string;
   error?: string;
   private readonly emitter = new vscode.EventEmitter<void>();
   readonly onDidChange = this.emitter.event;
@@ -32,6 +36,7 @@ export class PlanStore implements PlanState, vscode.Disposable {
     this.plan = plan;
     this.root = root;
     this.error = undefined;
+    this.runEnv = undefined;
     this.scanCache.clear();
     await this.index();
     this.emitter.fire();
@@ -45,8 +50,10 @@ export class PlanStore implements PlanState, vscode.Disposable {
     this.emitter.fire();
   }
 
-  setRunning(running: boolean, error?: string): void {
+  setRunning(running: boolean, error?: string, applying = false, runEnv?: string): void {
     this.running = running;
+    this.applying = running && applying;
+    this.runEnv = running ? runEnv : undefined;
     this.error = error;
     this.emitter.fire();
   }

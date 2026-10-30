@@ -4,6 +4,5 @@ out/
 out-test/
 out-render/
 *.vsix
-.superpowers/
 .vscode-test/
 test/demo/out/

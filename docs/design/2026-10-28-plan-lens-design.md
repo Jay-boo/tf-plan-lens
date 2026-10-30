@@ -3,8 +3,7 @@
 Date: 2026-10-28
 Status: design and look approved in chat; spec awaiting review
 Mockup: `2026-10-28-plan-lens-mockup.html` / `.png` (approved: "ok looks good")
-Style reference: joblauncher_databricks `docs/superpowers/specs/2026-10-23-sixth-v2-design.md` and
-`media/webview/base.css` (Sixth v2). Build setup copied from gitland.
+Style reference: joblauncher_databricks `media/webview/base.css` (Sixth v2). Build setup copied from gitland.
 
 ## Why
 

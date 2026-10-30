@@ -23,7 +23,7 @@ interface Run {
 /**
  * Evaluates expressions with terraform console, for the inline values. Never on the real state: the env's root and the
  * local modules it calls are mirrored into the extension's storage with a local backend (console locks the state it
- * reads). See docs/superpowers/specs/2026-10-30-inline-values-design.md.
+ * reads). See docs/design/2026-10-30-inline-values-design.md.
  */
 export class Evaluator {
   /** Mirrors initialised in this session (by mirror folder). */

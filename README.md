@@ -73,7 +73,7 @@ Once an environment is planned, **saving a file previews just the blocks you edi
 - **Stuck state lock** — shows who holds it and since when, force-unlocks after you confirm.
 - **Expired cloud login** — offers `az login`, `aws sso login` or `gcloud auth application-default login` in a terminal.
 - **Load a plan file** from your CI (`terraform show -json`, or a binary plan).
-- **A settings page** in the sidebar: what each section shows (*shown*, *discreet*, *hidden*), every feature on or off.
+- **Settings in an editor tab** (gear in the sidebar), with a live preview: what each sidebar section shows, every feature on or off, and **your look** — accent (Aurora, Sunset, Forest, Terraform, Mono or your own colours), corners, density, motion.
 
 ## Safe by design
 
@@ -97,7 +97,7 @@ No environment layout to adopt: a plain folder with `.tf` files works. Plan Lens
 
 ## Settings
 
-All in the sidebar's settings page (gear), or as `planLens.*` settings.
+All in the settings tab (the gear in the sidebar, or **Plan Lens: Settings**), or as `planLens.*` settings.
 
 | Setting | Default | |
 |:--|:--|:--|
@@ -110,6 +110,8 @@ All in the sidebar's settings page (gear), or as `planLens.*` settings.
 | `planLens.sidebar.drift` / `.reads` | `discreet` | `shown`, `discreet` or `hidden` |
 | `planLens.sidebar.imports` / `.moved` / `.outputs` | `shown` | `shown`, `discreet` or `hidden` |
 | `planLens.allowApply` | `false` | Apply from Plan Lens (per workspace) |
+| `planLens.style.accent` | `aurora` | `aurora`, `sunset`, `forest`, `terraform`, `mono` or `custom` (`planLens.style.customColors`) |
+| `planLens.style.corners` / `.density` / `.motion` | `sharp` / `comfortable` / `subtle` | The look of the views |
 | `planLens.terraformPath` | (empty) | `terraform`, else `tofu` when only OpenTofu is installed |
 | `planLens.environmentsFolder` | (empty) | Folder holding the environments |
 | `planLens.environmentGlob` | `environments/**/terraform.tfvars` | Where environments are found |

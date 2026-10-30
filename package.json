@@ -460,6 +460,53 @@
           "type": "boolean",
           "default": true,
           "markdownDescription": "**Completions from your data**: complete map keys and object fields from the evaluated values (`local.x[\"…\"]`, `each.value.…`, `var.x.…`). Needs `#planLens.inlineValues#`."
+        },
+        "planLens.style.accent": {
+          "type": "string",
+          "enum": [
+            "aurora",
+            "sunset",
+            "forest",
+            "terraform",
+            "mono",
+            "custom"
+          ],
+          "default": "aurora",
+          "markdownDescription": "Accent gradient of the Plan Lens views. `mono` follows your theme's accent; `custom` uses `#planLens.style.customColors#`."
+        },
+        "planLens.style.customColors": {
+          "type": "string",
+          "default": "#8b5cf6, #06b6d4",
+          "markdownDescription": "With the `custom` accent: 2 or 3 hex colours, comma separated."
+        },
+        "planLens.style.corners": {
+          "type": "string",
+          "enum": [
+            "sharp",
+            "soft",
+            "round"
+          ],
+          "default": "sharp",
+          "description": "How round boxes, badges and buttons are."
+        },
+        "planLens.style.density": {
+          "type": "string",
+          "enum": [
+            "compact",
+            "comfortable"
+          ],
+          "default": "comfortable",
+          "description": "Room around rows and cards."
+        },
+        "planLens.style.motion": {
+          "type": "string",
+          "enum": [
+            "subtle",
+            "full",
+            "off"
+          ],
+          "default": "subtle",
+          "markdownDescription": "`subtle`: a new plan slides in, nothing loops. `full`: a flowing header line, a living refactor border, a sheen on hover. `off`: still (also when the system asks for reduced motion)."
         }
       }
     }

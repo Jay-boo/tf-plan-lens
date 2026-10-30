@@ -20,6 +20,7 @@ import { RunError, Runner, SavedPlan } from './runner';
 import { PlanStore } from './state';
 import { PlanStatusBar } from './statusBar';
 import { PlanViewProvider, ViewMessage } from './view/planView';
+import { SettingsPanel } from './view/settingsPanel';
 
 const ENV_KEY = 'planLens.env';
 /** root → workspaces found with terraform workspace list (remote backends have no local trace of them). */
@@ -561,13 +562,15 @@ export function activate(ctx: vscode.ExtensionContext): void {
     canApply: !!config().get<boolean>('allowApply') && !!saved && store.plan?.env === saved.env.name,
     applyOff: !config().get<boolean>('allowApply') && !!saved && store.plan?.env === saved.env.name,
   });
+  const settingsPanel = new SettingsPanel(ctx, () => envSource, { envFolder: () => void setEnvFolder(), findWorkspaces: () => void findWorkspaces() });
+  ctx.subscriptions.push(settingsPanel);
   const view = new PlanViewProvider(ctx, store, out, viewInfo, (m: ViewMessage) => {
     switch (m.type) {
       case 'run': return void runPlan(m.env, Array.isArray(m.targets) ? m.targets.filter((t) => typeof t === 'string') : []);
       case 'load': return void loadPlan();
       case 'apply': return void apply();
       case 'envFolder': return void setEnvFolder();
-      case 'settings': return void vscode.commands.executeCommand('workbench.action.openSettings', '@ext:jay-boo.tf-plan-lens');
+      case 'settings': return settingsPanel.show();
       case 'setting': {
         // Only what the settings page lists, with a value of its kind; apply stays a per-workspace choice.
         const ok = validSetting(m.key, m.value);
@@ -601,7 +604,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('planLens.targetPlan', () => targetPlan()),
     vscode.commands.registerCommand('planLens.setEnvFolder', () => setEnvFolder()),
     vscode.commands.registerCommand('planLens.findWorkspaces', () => findWorkspaces()),
-    vscode.commands.registerCommand('planLens.openSettingsPage', () => view.showSettings()),
+    vscode.commands.registerCommand('planLens.openSettingsPage', () => settingsPanel.show()),
     vscode.commands.registerCommand('planLens.writeMoves', (ids: string[], replan?: boolean) => writeMoves(Array.isArray(ids) ? ids : [], !!replan)),
     vscode.commands.registerCommand('planLens.openLog', () => out.show(true)),
     vscode.commands.registerCommand('planLens.pickEnv', () => pickEnv()),

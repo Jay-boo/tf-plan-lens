@@ -5,6 +5,7 @@ const require = createRequire(import.meta.url);
 const { parsePlan } = require('../../out-test/model/planParser.js');
 const { toViewModel } = require('../../out-test/model/viewModel.js');
 const { findMoves } = require('../../out-test/model/refactor.js');
+const { SETTINGS } = require('../../out-test/model/settings.js');
 
 const json = JSON.parse(readFileSync(new URL('../fixtures/plan.json', import.meta.url), 'utf8'));
 const plan = parsePlan(json, { env: 'QUAL', source: 'run', loadedAt: 0 });
@@ -27,6 +28,9 @@ const refactorMoves = [...findMoves(refactorPlan), { id: 'azurerm_subnet.pe>modu
 
 // A real plan with drift, an import replaced right away, a moved object and output changes.
 const richPlan = parsePlan(JSON.parse(readFileSync(new URL('../fixtures/rich-plan.json', import.meta.url), 'utf8')), { env: 'QUAL', source: 'run', loadedAt: 0 });
+
+// The settings tab's model (not a sidebar model): every setting at its default.
+export const settingsPage = { settings: SETTINGS.map((d) => ({ ...d, value: d.default })), envFolder: 'environments/**/terraform.tfvars' };
 
 export const fixtures = {
   empty: toViewModel(undefined, { ...base, locate }),

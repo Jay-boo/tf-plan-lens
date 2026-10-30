@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { fixtures } from './fixtures.mjs';
+import { fixtures, settingsPage } from './fixtures.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(join(homedir(), 'projects/gitland/node_modules/playwright-core'));
@@ -37,6 +37,14 @@ const html = (theme) => page0
   .replace(/\{\{cspSource\}\}/g, 'file:').replace(/\{\{nonce\}\}/g, 'render')
   .replace('<body class="plan">', `<body class="plan ${themes[theme].cls}">`);
 
+const settings0 = readFileSync(join(root, 'webview/settings.html'), 'utf8');
+const settingsHtml = (theme) => settings0
+  .replace('{{codicon}}', 'vendor/codicon.css').replace('{{base}}', 'base.css').replace('{{css}}', 'planView.css').replace('{{settingsCss}}', 'settings.css')
+  .replace('<link rel="stylesheet" href="vendor/codicon.css">', `<link rel="stylesheet" href="__theme-${theme}.css"><link rel="stylesheet" href="vendor/codicon.css">`)
+  .replace('<script nonce="{{nonce}}" src="{{js}}"></script>', `<script nonce="render" src="__stub.js"></script><script nonce="render" src="settings.js"></script>`)
+  .replace(/\{\{cspSource\}\}/g, 'file:').replace(/\{\{nonce\}\}/g, 'render')
+  .replace('<body class="plan settings">', `<body class="plan settings ${themes[theme].cls}">`);
+
 mkdirSync(join(root, 'out-render'), { recursive: true });
 writeFileSync(join(root, 'webview/__stub.js'), 'window.acquireVsCodeApi = () => ({ getState: () => undefined, setState: () => {}, postMessage: (m) => (window.__posted = [...(window.__posted || []), m]) });');
 const browser = await chromium.launch();
@@ -47,6 +55,7 @@ for (const theme of Object.keys(themes)) {
   writeFileSync(join(root, `webview/__theme-${theme}.css`), themeCss(theme));
   for (const width of [260, 360, 500]) {
     const page = await browser.newPage({ viewport: { width, height: 900 }, reducedMotion: 'reduce' }); // still frames: no animation mid-way
+    page.on('pageerror', (e) => { failures++; console.log(`PAGE ERROR ${theme} ${width}: ${e.message}`); });
     page.on('console', (m) => /Content Security Policy/.test(m.text()) && (failures++, console.log(`CSP ${theme} ${width}: ${m.text().slice(0, 120)}`)));
     await page.goto('file://' + file);
     for (const [name, model] of Object.entries(fixtures)) {
@@ -79,21 +88,39 @@ for (const theme of Object.keys(themes)) {
     await page.evaluate((m) => { window.__posted = []; window.postMessage({ type: 'model', model: m }, '*'); }, fixtures.rich);
     await page.waitForTimeout(120);
     await page.screenshot({ path: join(root, `out-render/richDiscreet-${theme}-${width}.png`), fullPage: true });
+    // The gear opens the settings tab (the extension does it).
     await page.click('button[aria-label="Settings"]');
-    const overS = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-    if (overS > 0) { failures++; console.log(`OVERFLOW ${theme} ${width} settings: ${overS}px`); }
+    if ((await page.evaluate(() => window.__posted.at(-1)?.type)) !== 'settings') { failures++; console.log(`GEAR ${theme} ${width}: does not post settings`); }
+    await page.close();
+  }
+  // The settings tab: an editor-wide page and a narrow one; pick the Sunset accent, set drift to Shown.
+  const sfile = join(root, `webview/__settings-${theme}.html`);
+  writeFileSync(sfile, settingsHtml(theme));
+  for (const width of [1100, 640]) {
+    const page = await browser.newPage({ viewport: { width, height: 1000 }, reducedMotion: 'reduce' });
+    await page.goto(`file://${sfile}`);
+    await page.evaluate((m) => { window.__posted = []; window.postMessage({ type: 'model', model: m }, '*'); }, settingsPage);
+    await page.waitForTimeout(150);
+    const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    if (over > 0) { failures++; console.log(`OVERFLOW ${theme} ${width} settings: ${over}px`); }
     await page.screenshot({ path: join(root, `out-render/settings-${theme}-${width}.png`), fullPage: true });
+    await page.click('.ps-swatch[title="Sunset"]');
     await page.click('.pl-seg[aria-label="Changed outside Terraform"] button:first-child');
-    const set = await page.evaluate(() => window.__posted.at(-1));
-    if (JSON.stringify(set) !== JSON.stringify({ type: 'setting', key: 'sidebar.drift', value: 'shown' })) {
-      failures++; console.log(`SETTINGS ${theme} ${width}: posted ${JSON.stringify(set)}`);
+    const posted = await page.evaluate(() => window.__posted.slice(-2));
+    if (JSON.stringify(posted) !== JSON.stringify([{ type: 'setting', key: 'style.accent', value: 'sunset' }, { type: 'setting', key: 'sidebar.drift', value: 'shown' }])) {
+      failures++; console.log(`SETTINGS ${theme} ${width}: posted ${JSON.stringify(posted)}`);
     }
+    // The preview follows the pick at once.
+    // The preview's primary button really is drawn with the picked gradient (not only the variable set).
+    const bg = await page.evaluate(() => getComputedStyle(document.querySelector('.ps-preview .pl-foot button.primary')).backgroundImage);
+    if (!/244, 63, 94|f43f5e/i.test(bg)) { failures++; console.log(`PREVIEW ${theme} ${width}: button ${bg.slice(0, 80)}`); }
+    if (width === 1100) await page.screenshot({ path: join(root, `out-render/settings-sunset-${theme}.png`), fullPage: true });
     await page.close();
   }
 }
 await browser.close();
 if (!process.env.KEEP) {
-  for (const f of ['__stub.js', ...Object.keys(themes).flatMap((t) => [`__render-${t}.html`, `__theme-${t}.css`])]) require('node:fs').rmSync(join(root, 'webview', f));
+  for (const f of ['__stub.js', ...Object.keys(themes).flatMap((t) => [`__render-${t}.html`, `__settings-${t}.html`, `__theme-${t}.css`])]) require('node:fs').rmSync(join(root, 'webview', f));
 }
 console.log(failures ? `${failures} failure(s)` : 'render ok: no overflow');
 process.exit(failures ? 1 : 0);

@@ -35,7 +35,8 @@ test('the settings page list matches package.json (keys, types, defaults)', asyn
     const p = props[`planLens.${s.key}`];
     assert.ok(p, `planLens.${s.key} missing from package.json`);
     assert.equal(p.default, s.default, `default of planLens.${s.key}`);
-    assert.equal(p.type, s.type === 'visibility' ? 'string' : s.type, `type of planLens.${s.key}`);
+    assert.equal(p.type, ['visibility', 'choice', 'colors'].includes(s.type) ? 'string' : s.type, `type of planLens.${s.key}`);
+    if (s.type === 'choice') assert.deepEqual(p.enum, s.options.map((o) => o.value), `options of planLens.${s.key}`);
     if (s.type === 'visibility') assert.deepEqual(p.enum, ['shown', 'discreet', 'hidden']);
   }
   assert.equal(props['planLens.sidebar.drift'].default, 'discreet');
@@ -44,4 +45,18 @@ test('the settings page list matches package.json (keys, types, defaults)', asyn
   assert.equal(validSetting('allowApply', 'true'), undefined);
   assert.equal(validSetting('environmentGlob', '**'), undefined);
   assert.equal(validSetting('terraformPath', 'a\nb'), undefined);
+});
+
+test('appearance: presets, custom colours, the look the sidebar gets', async () => {
+  const { createRequire } = await import('node:module');
+  const { styleOf, parseColors, validSetting } = createRequire(import.meta.url)('../../out-test/model/settings.js');
+  const get = (o) => (k) => o[k];
+  assert.deepEqual(styleOf(get({})), { colors: ['#8b5cf6', '#3b82f6', '#06b6d4'], radius: 3, density: 'comfortable', motion: 'subtle' });
+  assert.equal(styleOf(get({ 'style.accent': 'mono' })).colors, undefined);
+  assert.deepEqual(styleOf(get({ 'style.accent': 'custom', 'style.customColors': '#ff0000, #00ff00' })).colors, ['#ff0000', '#00ff00', '#ff0000']);
+  assert.deepEqual(styleOf(get({ 'style.accent': 'custom', 'style.customColors': 'red' })).colors, ['#8b5cf6', '#3b82f6', '#06b6d4']);
+  assert.equal(styleOf(get({ 'style.corners': 'round' })).radius, 10);
+  assert.equal(parseColors('#abcdef,#123456,#000000,#ffffff'), undefined);
+  assert.equal(validSetting('style.accent', 'neon'), undefined);
+  assert.equal(validSetting('style.customColors', ' #AbCdEf ,#123456 ').value, '#AbCdEf, #123456');
 });

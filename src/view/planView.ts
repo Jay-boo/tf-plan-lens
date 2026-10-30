@@ -41,13 +41,6 @@ export class PlanViewProvider implements vscode.WebviewViewProvider {
     view.onDidDispose(() => (this.view = undefined));
   }
 
-  /** Opens the sidebar on its settings page. */
-  showSettings(): void {
-    void vscode.commands.executeCommand(`${PlanViewProvider.id}.focus`).then(() => {
-      setTimeout(() => void this.view?.webview.postMessage({ type: 'openSettings' }), 150);
-    });
-  }
-
   reveal(address: string): void {
     void vscode.commands.executeCommand(`${PlanViewProvider.id}.focus`).then(() => {
       setTimeout(() => void this.view?.webview.postMessage({ type: 'reveal', address }), 150);

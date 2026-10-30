@@ -1,6 +1,6 @@
 import * as path from 'node:path';
 import { Move } from './refactor';
-import { SETTINGS, SettingDef, Visibility } from './settings';
+import { SETTINGS, SettingDef, Visibility, styleOf } from './settings';
 import { covers } from './targets';
 import { Action, Change, OutputChange, Plan } from './types';
 
@@ -92,6 +92,8 @@ export interface ViewModel {
   sections: Record<Section, Visibility>;
   /** The settings page: every setting with its current value. */
   settings: (SettingDef & { value: Visibility | boolean | string })[];
+  /** The look (settings planLens.style.*): accent stops (none: the theme's accent), radius, density, motion. */
+  style: ReturnType<typeof styleOf>;
 }
 
 export type Section = 'drift' | 'imports' | 'moved' | 'reads' | 'outputs';
@@ -207,6 +209,7 @@ export function toViewModel(plan: Plan | undefined, o: ViewOptions): ViewModel {
     tail: o.running ? o.tail ?? [] : [],
     sections: Object.fromEntries(SECTIONS.map((s) => [s, setting(o, `sidebar.${s}`)])) as Record<Section, Visibility>,
     settings: SETTINGS.map((d) => ({ ...d, value: setting(o, d.key) })),
+    style: styleOf((k) => setting(o, k)),
   };
   if (!plan) {
     vm.title = o.env ? `Plan · ${o.env}` : 'No plan yet';

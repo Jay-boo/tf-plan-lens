@@ -259,9 +259,9 @@ body.plan { font-size: 13px; }
 
 /* Header: a flat KPI panel under a flowing gradient edge. */
 .pl-head { margin: 0; padding: 12px 10px 12px 14px; border: none; border-bottom: 1px solid var(--pl-line); border-radius: 0;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--pl-g1) 9%, var(--gl-bg)), var(--gl-bg) 85%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--pl-g1) 5%, var(--gl-bg)), var(--gl-bg) 85%);
   box-shadow: none; }
-.pl-head::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--pl-grad); background-size: 300% 100%; animation: pl-flow 6s linear infinite; }
+.pl-head::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--pl-grad); background-size: 300% 100%; }
 @keyframes pl-flow { to { background-position: 300% 0; } }
 .pl-head .top { min-height: 26px; }
 .pl-env { height: 26px; gap: 7px; font-size: 14px; font-weight: 700; letter-spacing: 0.01em; }
@@ -302,27 +302,28 @@ body.plan { font-size: 13px; }
 
 /* What needs a look: an accent bar, the action as a status, a wash of its colour (GitLens's permission card). */
 .pl-orow { position: relative; min-height: 50px; gap: 10px; margin: 0 0 5px; padding: 9px 10px 9px 13px; border: 1px solid var(--pl-line); border-radius: var(--pl-r);
-  background: linear-gradient(90deg, color-mix(in srgb, var(--c) 13%, transparent), transparent 70%); overflow: hidden;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--c) 8%, transparent), transparent 65%); overflow: hidden;
   transition: transform .18s cubic-bezier(.2, .8, .3, 1), border-color .18s ease, box-shadow .18s ease, background-color .18s ease; }
 .pl-orow::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--c); transition: width .18s ease, box-shadow .18s ease; }
 /* Hover: the card lifts and glows in its action's colour, its bar widens, a sheen crosses it once, the arrow slides in. */
 .pl-orow::after { content: ''; position: absolute; top: 0; bottom: 0; left: -60%; width: 45%; pointer-events: none;
   background: linear-gradient(100deg, transparent, color-mix(in srgb, #fff 9%, transparent), transparent); transform: skewX(-18deg); opacity: 0; }
 .pl-orow:hover, .pl-orow:focus-visible { transform: translateY(-1px); border-color: color-mix(in srgb, var(--c) 60%, var(--pl-line));
-  background-color: color-mix(in srgb, var(--c) 7%, transparent);
-  box-shadow: 0 6px 18px -8px color-mix(in srgb, var(--c) 70%, transparent), 0 0 0 1px color-mix(in srgb, var(--c) 18%, transparent); }
-.pl-orow:hover::before, .pl-orow:focus-visible::before { width: 4px; box-shadow: 0 0 12px 1px var(--c); }
-.pl-orow:hover::after { animation: pl-sheen .7s ease-out both; }
+  background-color: color-mix(in srgb, var(--c) 5%, transparent);
+  box-shadow: 0 4px 12px -8px color-mix(in srgb, var(--c) 55%, transparent); }
+.pl-orow:hover::before, .pl-orow:focus-visible::before { width: 4px; }
+[data-motion="full"] .pl-orow:hover::before { box-shadow: 0 0 10px 0 var(--c); }
+[data-motion="full"] .pl-orow:hover::after { animation: pl-sheen .7s ease-out both; }
 @keyframes pl-sheen { from { left: -60%; opacity: 1; } to { left: 120%; opacity: 1; } }
 .pl-orow .go { transform: translateX(-4px); opacity: 0; transition: transform .18s ease, opacity .18s ease; }
 .pl-orow:hover .go, .pl-orow:focus-visible .go { visibility: visible; transform: none; opacity: 1; color: var(--c); }
-.pl-orow:hover .pl-verb { box-shadow: 0 0 10px -2px var(--c); }
+[data-motion="full"] .pl-orow:hover .pl-verb { box-shadow: 0 0 10px -2px var(--c); }
 .pl-orow:active { transform: translateY(0); transition-duration: .05s; }
 .pl-orow .head { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .pl-orow .name { flex: 1 1 auto; min-width: 0; font-size: 13px; font-weight: 500; }
 .pl-orow .sub { margin-top: 3px; }
 .pl-orow .go { margin-top: 1px; }
-.pl-verb { flex: none; padding: 0 5px; font: 700 9.5px/16px var(--gl-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 55%, transparent); border-radius: 2px; }
+.pl-verb { flex: none; padding: 0 5px; font: 700 9.5px/16px var(--gl-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 55%, transparent); }
 .pl-orow.k-forget .pl-verb, .pl-orow.k-destroy .pl-verb { color: var(--gl-bg); background: var(--c); border-color: var(--c); }
 
 /* Every other list: a framed list, a squared action badge in front of each row (Thunder Client's method tags). */
@@ -341,7 +342,8 @@ body.plan { font-size: 13px; }
 @property --pl-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
 .pl-moves { position: relative; border: 1px solid transparent; border-radius: 4px;
   background: linear-gradient(var(--gl-card), var(--gl-card)) padding-box, conic-gradient(from var(--pl-angle), var(--pl-g1), var(--pl-g2), var(--pl-g3), var(--pl-create), var(--pl-g1)) border-box;
-  animation: pl-spin-border 5s linear infinite; }
+}
+[data-motion="full"] .pl-moves { animation: pl-spin-border 5s linear infinite; }
 @keyframes pl-spin-border { to { --pl-angle: 360deg; } }
 .pl-moves .top b { letter-spacing: 0.01em; }
 .pl-save { border-radius: 2px; }
@@ -373,7 +375,8 @@ body.plan { font-size: 13px; }
 .pl-input { border-radius: var(--pl-r); }
 .pl-set-row > button.ghost { border-radius: var(--pl-r); }
 .pl-env-row { border-radius: var(--pl-r); }
-.pl-tile.big { width: 46px; height: 46px; margin: 0 auto 10px; border-radius: 6px; color: #fff; background: var(--pl-grad); background-size: 300% 100%; animation: pl-flow 6s linear infinite; box-shadow: 0 6px 24px -6px var(--pl-g2); }
+.pl-tile.big { width: 46px; height: 46px; margin: 0 auto 10px; border-radius: calc(var(--pl-r) * 2); color: #fff; background: var(--pl-grad); background-size: 300% 100%; box-shadow: 0 6px 20px -8px var(--pl-g2); }
+[data-motion="full"] .pl-tile.big, [data-motion="full"] .pl-head::before { animation: pl-flow 6s linear infinite; }
 .pl-tile.big > .codicon { font-size: 22px; }
 .gl-empty > .pl-tile.big { display: flex; align-items: center; justify-content: center; }
 .pl-target { border-radius: var(--pl-r); }
@@ -383,8 +386,23 @@ body.plan { font-size: 13px; }
 @keyframes pl-grow { from { transform: scaleY(0); } }
 .fresh .pl-orow, .fresh .pl-box, .fresh .pl-moves, .fresh .pl-discreet { animation: pl-in .38s cubic-bezier(.2, .8, .3, 1) both; animation-delay: calc(var(--i, 0) * 45ms + 120ms); }
 @keyframes pl-in { from { opacity: 0; transform: translateY(6px); } }
-.fresh .pl-moves { animation: pl-in .38s cubic-bezier(.2, .8, .3, 1) both, pl-spin-border 5s linear infinite; }
+[data-motion="full"] .fresh .pl-moves { animation: pl-in .38s cubic-bezier(.2, .8, .3, 1) both, pl-spin-border 5s linear infinite; }
 
+/* Mono accent: the theme's own focus colour, no gradient. */
+[data-accent="mono"] { --pl-g1: var(--gl-accent); --pl-g2: var(--gl-accent); --pl-g3: var(--gl-accent); }
+
+/* Compact: less room around rows and cards. */
+[data-density="compact"] .pl-orow { min-height: 40px; margin-bottom: 3px; padding: 6px 8px 6px 11px; }
+[data-density="compact"] .pl-box .pl-row { min-height: 22px; }
+[data-density="compact"] .pl-kpi { padding: 4px 8px 5px; }
+[data-density="compact"] .pl-kpi b { font-size: 17px; }
+[data-density="compact"] .pl-body .gl-ck { margin: 12px 0 5px; }
+[data-density="compact"] .pl-head { padding: 9px 8px 9px 12px; }
+
+/* Badges follow the corners, a little tighter. */
+.pl-verb, .pl-sym, .pl-pill, .pl-tag, .pl-save, .pl-body .gl-ck .n { border-radius: calc(var(--pl-r) * 0.7); }
+
+[data-motion="off"] *, [data-motion="off"] *::before, [data-motion="off"] *::after { animation: none !important; transition: none !important; }
 @media (prefers-reduced-motion: reduce) {
   .pl-head::before, .pl-moves, .pl-tile.big, .pl-split.busy > i { animation: none; }
   .fresh .pl-strip > i, .fresh .pl-orow, .fresh .pl-box, .fresh .pl-discreet, .fresh .pl-moves, .pl-head .pl-state.ok .codicon { animation: none; }

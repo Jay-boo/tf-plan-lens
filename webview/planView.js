@@ -8,8 +8,6 @@
   const MAX_UPDATES = 15;
   const state = Object.assign({ shut: {}, peek: {} }, vscode.getState() || {});
   state.peek = state.peek || {};
-  /** The settings page is open (instead of the plan). */
-  let settingsOpen = false;
   let model;
   let showAllUpdates = false;
   /** Pick mode: the -target addresses being picked (null when not picking). */
@@ -66,7 +64,7 @@
       pickable(m) && !pick ? iconBtn('target', 'Pick targets: plan and apply only some changes', () => startPick(m)) : null,
       iconBtn('folder-opened', 'Load a plan file', 'load'),
       m.state === 'ready' && !running ? iconBtn('close', 'Clear plan', 'clear') : null,
-      h('button', { class: `icon${settingsOpen ? ' on' : ''}`, title: 'Settings', 'aria-label': 'Settings', 'aria-pressed': String(settingsOpen), onclick: () => { settingsOpen = !settingsOpen; render(); } }, icon('settings-gear')));
+      iconBtn('settings-gear', 'Settings', 'settings'));
     const kids = [top];
     if (m.state === 'ready' || (running && m.sub)) {
       // KPI cells: what the plan does, a big number per action.
@@ -304,46 +302,11 @@
     return kids;
   }
 
-  /** Settings page: every option, grouped, saved as VS Code settings as soon as it changes. */
-  function settingsPage(m) {
-    const groups = [...new Set(m.settings.map((s) => s.group))];
-    const set = (key, value) => post('setting', { key, value });
-    const control = (s) => {
-      if (s.type === 'visibility') {
-        return h('div', { class: 'pl-seg', role: 'radiogroup', 'aria-label': s.label }, ['shown', 'discreet', 'hidden'].map((v) =>
-          h('button', { class: v === s.value ? 'on' : '', role: 'radio', 'aria-checked': String(v === s.value), onclick: () => set(s.key, v) }, v[0].toUpperCase() + v.slice(1))));
-      }
-      if (s.type === 'boolean') {
-        return h('button', { class: `pl-switch${s.value ? ' on' : ''}`, role: 'switch', 'aria-checked': String(!!s.value), 'aria-label': s.label, onclick: () => set(s.key, !s.value) }, h('i'));
-      }
-      const input = h('input', { class: 'pl-input', type: 'text', value: s.value, placeholder: s.placeholder || '', 'aria-label': s.label, spellcheck: 'false' });
-      const save = () => input.value.trim() !== s.value && set(s.key, input.value);
-      input.addEventListener('change', save);
-      input.addEventListener('keydown', (e) => e.key === 'Enter' && input.blur());
-      return input;
-    };
-    const kids = [h('div', { class: 'pl-set-title' }, icon('settings-gear'), h('b', { class: 'grow', text: 'Settings' }),
-      h('button', { class: 'ghost', title: 'All Plan Lens settings in VS Code', onclick: () => post('settings') }, icon('link-external'), h('span', { text: 'VS Code' })))];
-    for (const g of groups) {
-      kids.push(h('section', { class: 'pl-set-card' }, h('div', { class: 'pl-set-group', text: g }),
-        m.settings.filter((s) => s.group === g).map((s) => h('div', { class: `pl-set-row t-${s.type}` },
-          h('div', { class: 'txt' }, h('span', { class: 'lbl', text: s.label }), h('span', { class: 'help', text: s.help + (s.workspace ? ' Saved for this workspace.' : '') })),
-          control(s)))));
-    }
-    kids.push(h('section', { class: 'pl-set-card' }, h('div', { class: 'pl-set-group', text: 'Environments' }),
-      h('div', { class: 'pl-set-row' }, h('div', { class: 'txt' }, h('span', { class: 'lbl', text: 'Where environments come from' }), h('span', { class: 'help mono', text: m.envFolder || 'Terraform folders in the workspace' })),
-        h('button', { class: 'ghost', onclick: () => post('envFolder') }, 'Change…')),
-      h('div', { class: 'pl-set-row' }, h('div', { class: 'txt' }, h('span', { class: 'lbl', text: 'Terraform workspaces' }), h('span', { class: 'help', text: 'List the workspaces of a remote backend, so each can be planned.' })),
-        h('button', { class: 'ghost', onclick: () => post('findWorkspaces') }, 'Find…'))));
-    return kids;
-  }
-
   function footer(m) {
     const env = m.env ? ` ${m.env}` : '';
     const btn = (cls, iconName, label, type) => h('button', { class: cls, title: label, onclick: typeof type === 'function' ? type : () => post(type) }, icon(iconName), h('span', { text: label }));
     let pair;
-    if (settingsOpen) pair = [btn('primary', 'check', 'Done', () => { settingsOpen = false; render(); })];
-    else if (pick) {
+    if (pick) {
       const n = pick.size;
       const go = h('button', { class: 'primary', title: n ? `terraform plan with ${n} -target` : 'Pick at least one change or module', disabled: !n,
         onclick: () => { const targets = [...pick]; pick = null; post('run', { targets }); } }, icon('target'), h('span', { text: n ? `Plan ${n} target${n > 1 ? 's' : ''}` : 'Pick targets' }));
@@ -357,12 +320,23 @@
     else pair = [btn('primary', 'refresh', `Re-plan${env}`, replan(m)), btn('', 'output', 'Log', 'log')];
     // Like an auto-approve bar: whether this plan can be applied from here, one click to the setting.
     const allow = (m.settings.find((s) => s.key === 'allowApply') || {}).value;
-    const applyBar = m.state === 'ready' && !pick && !settingsOpen && !m.loaded
-      ? h('button', { class: 'pl-applybar', title: 'Apply from Plan Lens: change it in the settings', onclick: () => { settingsOpen = true; render(); } },
+    const applyBar = m.state === 'ready' && !pick && !m.loaded
+      ? h('button', { class: 'pl-applybar', title: 'Apply from Plan Lens: change it in the settings', onclick: () => post('settings') },
         icon('shield'), h('span', { class: 'grow', text: 'Apply' }), h('span', { class: `pl-pill${allow ? ' on' : ''}`, text: allow ? 'On · this workspace' : 'Off' }), icon('chevron-right', 'go'))
       : null;
     const note = m.state === 'running' ? (m.applying ? 'terraform apply is running — see the log' : 'terraform init, then plan…') : '';
     return h('footer', { class: 'pl-foot' }, applyBar, h('div', { class: 'gl-btn-pair' }, pair), note ? h('div', { class: 'note', text: note }) : null);
+  }
+
+  /** The look from the settings (planLens.style.*): accent stops, corners, density, motion. */
+  function applyStyle(st) {
+    const root = document.documentElement.style;
+    const [g1, g2, g3] = st.colors || [];
+    for (const [k, v] of [['--pl-g1', g1], ['--pl-g2', g2], ['--pl-g3', g3]]) v ? root.setProperty(k, v) : root.removeProperty(k);
+    root.setProperty('--pl-r', `${st.radius}px`);
+    document.body.dataset.accent = st.colors ? 'gradient' : 'mono';
+    document.body.dataset.density = st.density;
+    document.body.dataset.motion = st.motion;
   }
 
   /** Rows slide in when a new plan arrives — not on every repaint (the view is redrawn every minute for the age). */
@@ -372,10 +346,11 @@
     if (!m) return;
     const planKey = m.state === 'ready' ? `${m.title}|${m.sub.split(' · ')[0]}|${m.strip.join('')}|${m.attention.length}|${m.unchanged}` : '';
     app.classList.toggle('fresh', !!planKey && planKey !== lastPlan);
+    applyStyle(m.style);
     lastPlan = planKey || lastPlan;
     const kids = [header(m)];
     if (m.error) kids.push(h('div', { class: 'pl-line err' }, icon('error'), h('span', { text: m.error })));
-    kids.push(h('div', { class: 'pl-body' }, settingsOpen ? settingsPage(m) : m.state === 'empty' ? empty(m) : changes(m)));
+    kids.push(h('div', { class: 'pl-body' }, m.state === 'empty' ? empty(m) : changes(m)));
     kids.push(footer(m));
     const y = document.body.scrollTop;
     app.replaceChildren(...kids);
@@ -417,7 +392,6 @@
   }
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && settingsOpen) { settingsOpen = false; render(); return; }
     if (e.key === 'Escape' && pick) { pick = null; render(); }
   });
 
@@ -431,11 +405,7 @@
     } else if (msg.type === 'tail') {
       setTail(msg.lines);
     } else if (msg.type === 'reveal') {
-      settingsOpen = false;
       reveal(msg.address);
-    } else if (msg.type === 'openSettings') {
-      settingsOpen = true;
-      render();
     }
   });
   post('ready');

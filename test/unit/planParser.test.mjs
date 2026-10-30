@@ -109,3 +109,17 @@ test('nested sensitive under an unknown parent never leaks', () => {
   assert.equal(conn.sensitive, true);
   assert.equal(c.attrs.find((a) => a.path === 'tags.a').after, '"2"');
 });
+
+test('a real plan with drift, an import, a moved object and output changes', () => {
+  const p = parsePlan(JSON.parse(readFileSync(new URL('../fixtures/rich-plan.json', import.meta.url), 'utf8')), { env: 'QUAL', source: 'run', loadedAt: 0 });
+  assert.deepEqual(p.drift.map((c) => [c.address, c.action]), [['local_file.conf', 'destroy']]);
+  const imp = p.changes.find((c) => c.address === 'random_string.imp');
+  assert.equal(imp.importing, 'abc');
+  assert.equal(imp.action, 'replace');
+  assert.equal(p.changes.find((c) => c.address === 'terraform_data.new_name').previousAddress, 'terraform_data.old_name');
+  assert.deepEqual(p.outputs.map((o) => [o.name, o.action, o.before, o.after, o.sensitive]), [
+    ['conf_path', 'update', '"./out/conf.txt"', '"./out/conf.txt!"', false],
+    ['old_output', 'destroy', '"bye"', '', false],
+    ['token', 'create', '', '', true],
+  ]);
+});

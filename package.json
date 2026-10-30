@@ -164,6 +164,12 @@
         "category": "Plan Lens"
       },
       {
+        "command": "planLens.findWorkspaces",
+        "title": "Find workspaces…",
+        "category": "Plan Lens",
+        "icon": "$(layers)"
+      },
+      {
         "command": "planLens.setEnvFolder",
         "title": "Set environments folder…",
         "category": "Plan Lens",
@@ -202,6 +208,23 @@
         "command": "planLens.copyAddress",
         "title": "Copy address",
         "category": "Plan Lens"
+      },
+      {
+        "command": "planLens.writeMoves",
+        "title": "Add moved block",
+        "category": "Plan Lens"
+      },
+      {
+        "command": "planLens.evaluateSelection",
+        "title": "Evaluate selection",
+        "category": "Plan Lens",
+        "icon": "$(symbol-variable)"
+      },
+      {
+        "command": "planLens.openSettingsPage",
+        "title": "Settings",
+        "category": "Plan Lens",
+        "icon": "$(settings-gear)"
       }
     ],
     "menus": {
@@ -227,6 +250,11 @@
           "group": "1_plan@3"
         },
         {
+          "command": "planLens.findWorkspaces",
+          "when": "view == planLens.view",
+          "group": "1_plan@3"
+        },
+        {
           "command": "planLens.targetPlan",
           "when": "view == planLens.view",
           "group": "1_plan@4"
@@ -245,6 +273,11 @@
           "command": "planLens.openLog",
           "when": "view == planLens.view",
           "group": "2_misc@2"
+        },
+        {
+          "command": "planLens.openSettingsPage",
+          "when": "view == planLens.view",
+          "group": "2_misc@3"
         }
       ],
       "commandPalette": [
@@ -259,6 +292,21 @@
         {
           "command": "planLens.apply",
           "when": "config.planLens.allowApply"
+        },
+        {
+          "command": "planLens.writeMoves",
+          "when": "false"
+        },
+        {
+          "command": "planLens.evaluateSelection",
+          "when": "editorLangId == terraform || resourceExtname == .tf"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "planLens.evaluateSelection",
+          "when": "resourceExtname == .tf && editorHasSelection",
+          "group": "navigation@9"
         }
       ]
     },
@@ -274,17 +322,17 @@
         "planLens.environmentGlob": {
           "type": "string",
           "default": "environments/**/terraform.tfvars",
-          "markdownDescription": "Glob (from the workspace) of the tfvars files that define environments, used when `#planLens.environmentsFolder#` is empty. A `backend.conf` next to one is used for init."
+          "markdownDescription": "Glob (from the workspace) of the tfvars files that define environments, used when `#planLens.environmentsFolder#` is empty. A `backend.conf` next to one is used for init. Terraform folders without such tfvars are offered too, planned as they are (once per workspace)."
         },
         "planLens.root": {
           "type": "string",
           "default": "",
-          "description": "Terraform root folder (absolute, or relative to the first workspace folder). Empty: the parent of the environments folder."
+          "markdownDescription": "Terraform root folder (absolute, or relative to the first workspace folder). Empty: each `environments/` folder plans its parent, and every other folder with `.tf` files that is not a local module plans as it is."
         },
         "planLens.terraformPath": {
           "type": "string",
-          "default": "terraform",
-          "description": "Terraform binary."
+          "default": "",
+          "markdownDescription": "Terraform (or OpenTofu) binary. Empty: `terraform`, or `tofu` when only OpenTofu is installed."
         },
         "planLens.allowApply": {
           "type": "boolean",
@@ -295,6 +343,106 @@
           "type": "boolean",
           "default": true,
           "description": "Show a faint \"no changes\" hint on blocks the plan leaves alone."
+        },
+        "planLens.inlineValues": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show what locals, variables, `for_each` / `count` and outputs of the environment's root module evaluate to, at the end of their line and in a hover. Computed by `terraform console` on Plan Lens's own copy of the configuration with the environment's variables — never on the real state."
+        },
+        "planLens.sidebar.drift": {
+          "type": "string",
+          "enum": [
+            "shown",
+            "discreet",
+            "hidden"
+          ],
+          "enumDescriptions": [
+            "A section in the sidebar",
+            "One faint line, opened on click",
+            "Not shown"
+          ],
+          "default": "discreet",
+          "markdownDescription": "Sidebar: objects **changed outside Terraform** since the last apply."
+        },
+        "planLens.sidebar.imports": {
+          "type": "string",
+          "enum": [
+            "shown",
+            "discreet",
+            "hidden"
+          ],
+          "enumDescriptions": [
+            "A section in the sidebar",
+            "One faint line, opened on click",
+            "Not shown"
+          ],
+          "default": "shown",
+          "markdownDescription": "Sidebar: objects `import` blocks bring under Terraform."
+        },
+        "planLens.sidebar.moved": {
+          "type": "string",
+          "enum": [
+            "shown",
+            "discreet",
+            "hidden"
+          ],
+          "enumDescriptions": [
+            "A section in the sidebar",
+            "One faint line, opened on click",
+            "Not shown"
+          ],
+          "default": "shown",
+          "markdownDescription": "Sidebar: objects `moved` blocks move to a new address."
+        },
+        "planLens.sidebar.reads": {
+          "type": "string",
+          "enum": [
+            "shown",
+            "discreet",
+            "hidden"
+          ],
+          "enumDescriptions": [
+            "A section in the sidebar",
+            "One faint line, opened on click",
+            "Not shown"
+          ],
+          "default": "discreet",
+          "markdownDescription": "Sidebar: data sources read during the plan."
+        },
+        "planLens.sidebar.outputs": {
+          "type": "string",
+          "enum": [
+            "shown",
+            "discreet",
+            "hidden"
+          ],
+          "enumDescriptions": [
+            "A section in the sidebar",
+            "One faint line, opened on click",
+            "Not shown"
+          ],
+          "default": "shown",
+          "markdownDescription": "Sidebar: outputs the plan changes (sensitive values are never shown)."
+        },
+        "planLens.refactor": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "**Refactor autopilot**: spot destroys that are objects moved to a new address and offer `moved` blocks (sidebar card, editor hints, quick fix)."
+        },
+        "planLens.editorMarkers": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show the plan on the code: gutter icon, coloured band and end-of-line hint on changed blocks."
+        },
+        "planLens.preview": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "**Preview edits on save**: once an environment has been planned here, saving a `.tf` file plans just the blocks you edited (`-target`, `-refresh=false`, `-lock=false`: read only, never applied) and says on the edited lines what that would do."
+        },
+        "planLens.completions": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "**Completions from your data**: complete map keys and object fields from the evaluated values (`local.x[\"…\"]`, `each.value.…`, `var.x.…`). Needs `#planLens.inlineValues#`."
         }
       }
     }
@@ -306,7 +454,8 @@
     "vscode:prepublish": "node esbuild.mjs --production",
     "test:unit": "node test/unit/build.mjs && node --test test/unit/",
     "render": "node test/render/render.mjs",
-    "package": "npm run typecheck && node -r ./scripts/file-shim.cjs ../gitland/node_modules/@vscode/vsce/vsce package --no-dependencies --allow-missing-repository"
+    "package": "npm run typecheck && node -r ./scripts/file-shim.cjs ../gitland/node_modules/@vscode/vsce/vsce package --no-dependencies --allow-missing-repository",
+    "e2e": "node esbuild.mjs && node test/e2e/runTest.js"
   },
   "devDependencies": {
     "@types/node": "^18.19.0",
@@ -318,5 +467,20 @@
   "galleryBanner": {
     "color": "#1d2129",
     "theme": "dark"
+  },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Plan Lens shows loaded plan files, but runs terraform (which runs the workspace's providers and modules) only in trusted workspaces.",
+      "restrictedConfigurations": [
+        "planLens.terraformPath",
+        "planLens.root",
+        "planLens.environmentsFolder"
+      ]
+    },
+    "virtualWorkspaces": {
+      "supported": false,
+      "description": "Plan Lens runs terraform on local files."
+    }
   }
 }

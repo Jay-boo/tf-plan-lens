@@ -2,14 +2,19 @@ import { randomBytes } from 'node:crypto';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { PlanLog } from '../log';
+import { SETTINGS } from '../model/settings';
 import { toViewModel } from '../model/viewModel';
 import { PlanStore } from '../state';
 
 export type ViewMessage =
-  | { type: 'ready' | 'load' | 'cancel' | 'clear' | 'log' | 'pickEnv' | 'apply' | 'envFolder' | 'settings'; env?: string }
+  | { type: 'ready' | 'load' | 'cancel' | 'clear' | 'log' | 'pickEnv' | 'apply' | 'envFolder' | 'settings' | 'findWorkspaces'; env?: string }
   /** targets: re-plan with -target (a targeted Re-plan keeps them; none is a full plan). */
   | { type: 'run'; env?: string; targets?: string[] }
-  | { type: 'open' | 'copy'; address: string };
+  | { type: 'open' | 'copy'; address: string }
+  /** Refactor autopilot: write the picked moves (ids from the model) as moved blocks, then maybe re-plan. */
+  | { type: 'moves'; ids: string[]; replan?: boolean }
+  /** The settings page changed a setting (checked against model/settings.ts before it is saved). */
+  | { type: 'setting'; key: string; value: unknown };
 
 export class PlanViewProvider implements vscode.WebviewViewProvider {
   static readonly id = 'planLens.view';
@@ -36,6 +41,13 @@ export class PlanViewProvider implements vscode.WebviewViewProvider {
     view.onDidDispose(() => (this.view = undefined));
   }
 
+  /** Opens the sidebar on its settings page. */
+  showSettings(): void {
+    void vscode.commands.executeCommand(`${PlanViewProvider.id}.focus`).then(() => {
+      setTimeout(() => void this.view?.webview.postMessage({ type: 'openSettings' }), 150);
+    });
+  }
+
   reveal(address: string): void {
     void vscode.commands.executeCommand(`${PlanViewProvider.id}.focus`).then(() => {
       setTimeout(() => void this.view?.webview.postMessage({ type: 'reveal', address }), 150);
@@ -60,6 +72,8 @@ export class PlanViewProvider implements vscode.WebviewViewProvider {
       locate: (c) => s.locate(c.address),
       error: s.error,
       tail: s.running ? this.log.tail() : [],
+      moves: s.moves,
+      settings: Object.fromEntries(SETTINGS.map((d) => [d.key, vscode.workspace.getConfiguration('planLens').get(d.key)])),
     });
     void this.view.webview.postMessage({ type: 'model', model });
   }

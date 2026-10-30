@@ -52,7 +52,8 @@ function instanceKey(c: Change): string {
 
 const bySeverity = (a: Change, b: Change) => SEVERITY.indexOf(a.action) - SEVERITY.indexOf(b.action);
 
-export function hoverMarkdown(mark: BlockMark): string {
+/** drift: the block's objects changed outside Terraform since the last apply (the plan's resource_drift). */
+export function hoverMarkdown(mark: BlockMark, drift: Change[] = []): string {
   const { block, changes, action } = mark;
   const out: string[] = [];
   const sub = SUBTITLE[action];
@@ -66,7 +67,10 @@ export function hoverMarkdown(mark: BlockMark): string {
     out.push('');
   } else if (changes.length === 1) {
     const c = changes[0];
-    out.push(`\`${c.address}\``, '', ...table(c));
+    out.push(`\`${c.address}\``, '');
+    if (c.previousAddress && c.previousAddress !== c.address) out.push(`$(arrow-swap) Moved from \`${c.previousAddress}\``, '');
+    if (c.importing !== undefined) out.push(`${color('read', '$(cloud-download)')} Imported from id \`${c.importing.replace(/`/g, "'")}\`${c.action === 'replace' || c.action === 'destroy' ? ` — ${color('replace', `**then ${c.action === 'replace' ? 'replaced' : 'destroyed'}**`)}` : ''}`, '');
+    out.push(...table(c));
   } else {
     out.push(`\`${block.kind === 'data' ? 'data.' : ''}${block.type}.${block.name}\` · ${esc(mark.hint)}`, '');
     const sorted = [...changes].sort(bySeverity);
@@ -75,6 +79,12 @@ export function hoverMarkdown(mark: BlockMark): string {
       out.push(...table(c));
     }
     if (sorted.length > MAX_INSTANCES) out.push(`*+ ${sorted.length - MAX_INSTANCES} more*`, '');
+  }
+
+  const own = new Set(changes.map((c) => c.address));
+  for (const d of drift.filter((x) => own.has(x.address)).slice(0, MAX_INSTANCES)) {
+    out.push(`${color('update', '$(cloud)')} **Changed outside Terraform** · \`${d.address}\`${d.action === 'destroy' ? ' · deleted' : ''}`, '');
+    if (d.action !== 'destroy') out.push(...table(d));
   }
 
   const first = block.kind === 'module' ? undefined : changes.length === 1 ? changes[0].address : undefined;

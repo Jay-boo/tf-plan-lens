@@ -1,5 +1,5 @@
 import * as path from 'node:path';
-import { Action, AttrChange, Change, Plan } from './types';
+import { Action, AttrChange, Change, OutputChange, Plan } from './types';
 
 type Json = any; // terraform show -json output is untyped
 
@@ -17,7 +17,21 @@ export function parsePlan(json: unknown, meta: { env: string; source: string; lo
     terraformVersion: String(j.terraform_version ?? ''),
     changes: (j.resource_changes ?? []).map(toChange),
     moduleDirs,
+    drift: (j.resource_drift ?? []).map(toChange).filter((c: Change) => c.action !== 'noop'),
+    outputs: Object.entries<Json>(j.output_changes ?? {}).flatMap(([name, oc]) => toOutput(name, oc)),
   };
+}
+
+function toOutput(name: string, oc: Json): OutputChange[] {
+  const action = toAction(oc?.actions ?? []);
+  if (action !== 'create' && action !== 'update' && action !== 'destroy') return [];
+  const sensitive = !!(oc.before_sensitive || oc.after_sensitive);
+  const unknown = oc.after_unknown === true;
+  return [{
+    name, action, sensitive, unknown,
+    before: sensitive ? '' : render(oc.before ?? undefined),
+    after: sensitive || unknown ? '' : render(oc.after ?? undefined),
+  }];
 }
 
 function toChange(rc: Json): Change {
@@ -36,7 +50,37 @@ function toChange(rc: Json): Change {
     attrs: diff(ch, new Set(replaceBy)),
     replaceBy,
     ...(rc.action_reason ? { reason: String(rc.action_reason) } : {}),
+    ...(rc.previous_address ? { previousAddress: String(rc.previous_address) } : {}),
+    // Imports by id, or by identity (Terraform 1.12+) shown as its JSON.
+    ...(ch.importing ? { importing: ch.importing.id !== undefined ? String(ch.importing.id) : JSON.stringify(ch.importing.identity ?? {}) } : {}),
+    ...comparable(rc, ch),
   };
+}
+
+/** The values a destroy or create is recognised by (see Change.values). */
+function comparable(rc: Json, ch: Json): { values?: Record<string, string> } {
+  if (rc.mode === 'data') return {};
+  const actions = (ch.actions ?? []).join(',');
+  if (actions === 'delete') return { values: leaves(ch.before, ch.before_sensitive, undefined) };
+  if (actions === 'create') return { values: leaves(ch.after, ch.after_sensitive, ch.after_unknown) };
+  return {};
+}
+
+function leaves(value: Json, sensitive: Json, unknown: Json): Record<string, string> {
+  const out: Record<string, string> = {};
+  const walk = (v: Json, s: Json, u: Json, parts: (string | number)[]): void => {
+    if (s === true || u === true || v === null || v === undefined || v === '') return;
+    if (typeof v !== 'object') {
+      out[joinPath(parts)] = JSON.stringify(v);
+      return;
+    }
+    for (const [k, child] of Object.entries<Json>(v)) {
+      const key = Array.isArray(v) ? Number(k) : k;
+      walk(child, s?.[k], u?.[k], [...parts, key]);
+    }
+  };
+  walk(value, sensitive, unknown, []);
+  return out;
 }
 
 function toAction(actions: string[]): Action {

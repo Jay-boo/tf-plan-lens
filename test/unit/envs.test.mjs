@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { envsFromFiles, findRoot, planArgs, applyArgs, rootForEnvFolder, dataDir, isAzureAuthError, lastErrorLine, stateLock, unlockArgs } = require('../../out-test/model/envs.js');
+const { envsFromFiles, findRoot, planArgs, applyArgs, rootForEnvFolder, dataDir, cloudLogin, lastErrorLine, stateLock, unlockArgs } = require('../../out-test/model/envs.js');
 
 const root = '/x/Infra%20-%20Terraform - Data';
 
@@ -45,11 +45,16 @@ test('dataDir', () => {
   assert.equal(dataDir('/g', root, 'QUAL').split('/')[2], d.split('/')[2]);
 });
 
-test('isAzureAuthError', () => {
-  assert.equal(isAzureAuthError("Error: building account: please run 'az login' to setup account"), true);
-  assert.equal(isAzureAuthError("Please run 'az login'"), true);
-  assert.equal(isAzureAuthError('AADSTS700082: The refresh token has expired'), true);
-  assert.equal(isAzureAuthError('Error: Invalid reference'), false);
+test('cloudLogin', () => {
+  const az = { cloud: 'Azure', command: 'az login' };
+  assert.deepEqual(cloudLogin("Error: building account: please run 'az login' to setup account"), az);
+  assert.deepEqual(cloudLogin('AADSTS700082: The refresh token has expired'), az);
+  assert.equal(cloudLogin('Error: no valid credential sources for S3 Backend found.').cloud, 'AWS');
+  assert.equal(cloudLogin('Error: refreshing cached SSO token failed: SSO session has expired or is invalid').command, 'aws sso login');
+  assert.equal(cloudLogin('operation error STS: GetCallerIdentity, api error ExpiredToken: The security token included in the request is expired').cloud, 'AWS');
+  assert.deepEqual(cloudLogin('google: could not find default credentials. See https://cloud.google.com/docs/authentication'), { cloud: 'Google Cloud', command: 'gcloud auth application-default login' });
+  assert.equal(cloudLogin('oauth2: cannot fetch token: 400 Bad Request Response: {"error":"invalid_grant"}').cloud, 'Google Cloud');
+  assert.equal(cloudLogin('Error: Invalid reference'), undefined);
 });
 
 test('lastErrorLine', () => {
@@ -96,4 +101,46 @@ test('rootForEnvFolder', () => {
 
 test('applyArgs applies the saved plan only', () => {
   assert.deepEqual(applyArgs('/tmp/p/plan.bin'), ['apply', '-input=false', '/tmp/p/plan.bin']);
+});
+
+test('plain root env: no -var-file; workspace through TF_WORKSPACE', () => {
+  const { runEnvVars } = require('../../out-test/model/envs.js');
+  const env = { name: 'infra:prod', root: '/w/infra', dir: '/w/infra', workspace: 'prod' };
+  assert.deepEqual(planArgs(env, 'o').plan, ['plan', '-input=false', '-out=o']);
+  assert.deepEqual(runEnvVars(env), { TF_WORKSPACE: 'prod' });
+  assert.deepEqual(runEnvVars({ ...env, workspace: undefined }), {});
+  assert.match(dataDir('/g', '/w/infra', 'infra:prod'), /\/infra_prod$/);
+});
+
+test('envsFromFiles sets the root', () => {
+  assert.equal(envsFromFiles(root, [`${root}/environments/QUAL/terraform.tfvars`], () => false)[0].root, root);
+});
+
+test('pickBinary: the setting, else terraform, else tofu when only it is there', () => {
+  const { pickBinary } = require('../../out-test/model/envs.js');
+  assert.equal(pickBinary('/opt/tf', () => false), '/opt/tf');
+  assert.equal(pickBinary(undefined, (n) => n === 'terraform' || n === 'tofu'), 'terraform');
+  assert.equal(pickBinary(undefined, (n) => n === 'tofu'), 'tofu');
+  assert.equal(pickBinary(undefined, () => false), 'terraform');
+});
+
+test('previewArgs: read only — no refresh, no lock, targets', () => {
+  const { previewArgs } = require('../../out-test/model/envs.js');
+  const env = { name: 'QUAL', root: '/r', dir: '/r', tfvars: '/r/q.tfvars' };
+  assert.deepEqual(previewArgs(env, 'o', ['a.b']), ['plan', '-input=false', '-refresh=false', '-lock=false', '-var-file=/r/q.tfvars', '-out=o', '-target=a.b']);
+});
+
+test('movedTargets reads the -target options terraform asks for (real terraform 1.14 message)', () => {
+  const { movedTargets } = require('../../out-test/model/envs.js');
+  const text = [
+    '│ Error: Moved resource instances excluded by targeting',
+    '│ ',
+    '│ Resource instances in your current state have moved to new addresses in the latest configuration. Terraform must include those resource instances while planning in order to ensure a correct result, but your -target=... options do not fully cover all of those resource instances.',
+    '│ ',
+    '│ To create a valid plan, either remove your -target=... options altogether or add the following additional target options:',
+    '│   -target="module.inst[\\"i0\\"]"',
+    '│   -target="terraform_data.lake"',
+  ].join('\n');
+  assert.deepEqual(movedTargets(text), ['module.inst["i0"]', 'terraform_data.lake']);
+  assert.deepEqual(movedTargets('Error: something else -target="x"'), []);
 });

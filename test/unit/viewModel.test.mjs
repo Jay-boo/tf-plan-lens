@@ -25,7 +25,7 @@ test('header', () => {
 });
 
 test('counts and bar', () => {
-  assert.deepEqual(vm.counts, { create: 2, update: 5, replace: 2, destroy: 3 });
+  assert.deepEqual(vm.counts, { create: 2, update: 5, replace: 2, destroy: 3, import: 0 });
   assert.equal(vm.unchanged, 2);
   assert.deepEqual(vm.bar.map((b) => b.action), ['create', 'update', 'replace', 'destroy']);
   assert.equal(Math.round(vm.bar.reduce((s, b) => s + b.pct, 0)), 100);
@@ -133,7 +133,7 @@ test('running another env: header shows the env being run, not the loaded plan',
   assert.equal(v.env, 'PROD/dev');
   assert.equal(v.title, 'Plan · PROD/dev');
   assert.equal(v.sub, '');
-  assert.deepEqual(v.counts, { create: 0, update: 0, replace: 0, destroy: 0 });
+  assert.deepEqual(v.counts, { create: 0, update: 0, replace: 0, destroy: 0, import: 0 });
   assert.equal(v.unchanged, 0);
 });
 
@@ -142,4 +142,53 @@ test('re-running the same env keeps the previous plan on screen', () => {
   assert.equal(v.env, 'QUAL');
   assert.equal(v.title, 'Plan · QUAL');
   assert.equal(v.counts.update, 5);
+});
+
+test('refactor moves: listed with match %, destroys tagged with where they move', () => {
+  const { findMoves } = require('../../out-test/model/refactor.js');
+  const p = parsePlan(JSON.parse(readFileSync(new URL('../fixtures/refactor-plan.json', import.meta.url), 'utf8')), { env: 'QUAL', source: 'run', loadedAt: 0 });
+  const opts = { env: 'QUAL', envs: ['QUAL'], running: false, now: 0, rootName: 'root', locate: () => undefined };
+  const vm = toViewModel(p, { ...opts, moves: findMoves(p) });
+  assert.equal(vm.moves.length, 7);
+  assert.equal(vm.movable, 10);
+  assert.deepEqual(vm.moves.find((m) => m.from === 'module.old'), { id: 'module.old>module.new', from: 'module.old', to: 'module.new', type: 'module', pct: 100, ambiguous: false, n: 2 });
+  assert.equal(vm.attention.find((i) => i.address === 'terraform_data.lake').movesTo, 'module.storage.terraform_data.this');
+  assert.equal(vm.attention.find((i) => i.address === 'terraform_data.gone').movesTo, undefined);
+  assert.equal(toViewModel(p, { ...opts, moves: findMoves(p), running: true }).moves.length, 0);
+});
+
+test('drift, an import replaced right away, a moved object and outputs (real plan)', () => {
+  const p = parsePlan(JSON.parse(readFileSync(new URL('../fixtures/rich-plan.json', import.meta.url), 'utf8')), { env: 'QUAL', source: 'run', loadedAt: 0 });
+  const v = toViewModel(p, { env: 'QUAL', envs: ['QUAL'], running: false, now: 0, rootName: 'r', locate: () => ({ file: 'main.tf', line: 0 }) });
+  assert.deepEqual(v.counts, { create: 1, update: 0, replace: 1, destroy: 0, import: 1 });
+  assert.deepEqual(v.drift.map((i) => [i.address, i.sub[0]]), [['local_file.conf', 'deleted outside Terraform']]);
+  const imp = v.attention.find((i) => i.address === 'random_string.imp');
+  assert.equal(imp.importing, 'abc');
+  assert.match(imp.sub[0], /^imported, then replaced/);
+  assert.deepEqual(v.movedItems.map((i) => [i.address, i.movedFrom]), [['terraform_data.new_name', 'terraform_data.old_name']]);
+  assert.equal(v.unchanged, 0);
+  assert.deepEqual(v.outputs.map((o) => `${o.name}:${o.action}`), ['conf_path:update', 'old_output:destroy', 'token:create']);
+});
+
+test('an import that changes nothing is listed under imports and can be applied', () => {
+  const p = { ...plan, changes: [{ ...plan.changes[0], action: 'noop', importing: 'id-1', attrs: [] }], drift: [], outputs: [] };
+  const v = toViewModel(p, { env: 'QUAL', envs: ['QUAL'], running: false, now: 0, rootName: 'r', locate: () => undefined, canApply: true });
+  assert.equal(v.imports.length, 1);
+  assert.equal(v.unchanged, 0);
+  assert.equal(v.canApply, true);
+});
+
+test('sections and settings: drift discreet by default, settings override, refactor off hides moves', () => {
+  const { findMoves } = require('../../out-test/model/refactor.js');
+  const p = parsePlan(JSON.parse(readFileSync(new URL('../fixtures/refactor-plan.json', import.meta.url), 'utf8')), { env: 'QUAL', source: 'run', loadedAt: 0 });
+  const opts = { env: 'QUAL', envs: ['QUAL'], running: false, now: 0, rootName: 'r', locate: () => undefined, moves: findMoves(p) };
+  const v = toViewModel(p, opts);
+  assert.deepEqual(v.sections, { drift: 'discreet', imports: 'shown', moved: 'shown', reads: 'discreet', outputs: 'shown' });
+  assert.equal(v.settings.find((s) => s.key === 'allowApply').value, false);
+  const w = toViewModel(p, { ...opts, settings: { 'sidebar.drift': 'hidden', 'sidebar.reads': 'nonsense', refactor: false, allowApply: true } });
+  assert.equal(w.sections.drift, 'hidden');
+  assert.equal(w.sections.reads, 'discreet');
+  assert.equal(w.moves.length, 0);
+  assert.equal(w.attention.every((i) => !i.movesTo), true);
+  assert.equal(w.settings.find((s) => s.key === 'allowApply').value, true);
 });

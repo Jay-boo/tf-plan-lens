@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import { BlockMark } from '../model/matcher';
 import { Action } from '../model/types';
 import { PlanState } from '../state';
+import { movedHint, movesInto } from './moves';
 
 type Shown = Exclude<Action, 'noop'>;
 /** forget shares destroy's look. */
@@ -53,7 +54,7 @@ export class Decorations implements vscode.Disposable {
         clearTimeout(this.timer);
         this.timer = setTimeout(() => this.refreshAll(), 200);
       }),
-      vscode.workspace.onDidChangeConfiguration((e) => e.affectsConfiguration('planLens.showUnchanged') && this.refreshAll()),
+      vscode.workspace.onDidChangeConfiguration((e) => ['showUnchanged', 'editorMarkers', 'refactor'].some((k) => e.affectsConfiguration(`planLens.${k}`)) && this.refreshAll()),
       store.onDidChange(() => this.refreshAll()),
     );
     this.refreshAll();
@@ -66,7 +67,8 @@ export class Decorations implements vscode.Disposable {
   refresh(editor: vscode.TextEditor): void {
     const doc = editor.document;
     let marks: BlockMark[] = [];
-    if (this.store.plan && this.store.root && doc.uri.scheme === 'file' && doc.fileName.endsWith('.tf')) {
+    const markers = vscode.workspace.getConfiguration('planLens').get<boolean>('editorMarkers', true);
+    if (markers && this.store.plan && this.store.root && doc.uri.scheme === 'file' && doc.fileName.endsWith('.tf')) {
       const rel = relUnder(this.store.root, doc.uri.fsPath);
       if (rel) marks = this.store.marksFor(rel, doc.getText());
     }
@@ -76,7 +78,7 @@ export class Decorations implements vscode.Disposable {
     const noops: vscode.DecorationOptions[] = [];
     for (const m of marks) {
       const line = doc.lineAt(Math.min(m.block.startLine, doc.lineCount - 1));
-      const opt: vscode.DecorationOptions = { range: line.range, renderOptions: { after: { contentText: hintText(m) } } };
+      const opt: vscode.DecorationOptions = { range: line.range, renderOptions: { after: { contentText: hintText(m) + movedHint(movesInto(this.store, m)) } } };
       if (m.action === 'noop') {
         if (showNoop) noops.push(opt);
         continue;

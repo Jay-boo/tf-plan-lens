@@ -74,6 +74,19 @@ for (const theme of Object.keys(themes)) {
     if (JSON.stringify(run) !== JSON.stringify({ type: 'run', targets: ['module.storage', 'databricks_catalog.diapason_fresh'] })) {
       failures++; console.log(`PICK ${theme} ${width}: posted ${JSON.stringify(run)}`);
     }
+    // Settings page: open it from the gear, set drift to Shown, check what is posted.
+    await page.evaluate((m) => { window.__posted = []; window.postMessage({ type: 'model', model: m }, '*'); }, fixtures.rich);
+    await page.waitForTimeout(120);
+    await page.screenshot({ path: join(root, `out-render/richDiscreet-${theme}-${width}.png`), fullPage: true });
+    await page.click('button[aria-label="Settings"]');
+    const overS = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    if (overS > 0) { failures++; console.log(`OVERFLOW ${theme} ${width} settings: ${overS}px`); }
+    await page.screenshot({ path: join(root, `out-render/settings-${theme}-${width}.png`), fullPage: true });
+    await page.click('.pl-seg[aria-label="Changed outside Terraform"] button:first-child');
+    const set = await page.evaluate(() => window.__posted.at(-1));
+    if (JSON.stringify(set) !== JSON.stringify({ type: 'setting', key: 'sidebar.drift', value: 'shown' })) {
+      failures++; console.log(`SETTINGS ${theme} ${width}: posted ${JSON.stringify(set)}`);
+    }
     await page.close();
   }
 }

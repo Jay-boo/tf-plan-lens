@@ -34,6 +34,16 @@ export interface Change {
   attrs: AttrChange[];
   replaceBy: string[];
   reason?: string;
+  /** Set when a moved block moved it here: its address in the state. */
+  previousAddress?: string;
+  /** Set when an import block brings it under Terraform: the import id. */
+  importing?: string;
+  /**
+   * Destroys: the `before` leaves; creates: the known `after` leaves (path → JSON), without sensitive, unknown or empty
+   * ones. Only what tells objects apart, to pair a destroy with the create it really is (see refactor.ts).
+   * Stays in the extension host: never posted to the webview.
+   */
+  values?: Record<string, string>;
 }
 
 export interface Plan {
@@ -46,4 +56,18 @@ export interface Plan {
   moduleDirs: Record<string, string>;
   /** The -target addresses the plan was run with; absent for a full plan. */
   targets?: string[];
+  /** Objects changed outside Terraform since the last apply (resource_drift): update = edited, destroy = deleted. */
+  drift: Change[];
+  /** Outputs the plan changes. */
+  outputs: OutputChange[];
+}
+
+export interface OutputChange {
+  name: string;
+  action: 'create' | 'update' | 'destroy';
+  /** Rendered short JSON; '' when absent, sensitive or unknown. */
+  before: string;
+  after: string;
+  sensitive: boolean;
+  unknown: boolean;
 }

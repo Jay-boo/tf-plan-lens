@@ -82,6 +82,15 @@ export function hintFor(mark: BlockMark): string {
   }
   if (changes.length > 1) return `${changes.length} instances: ${counts(changes, true)}`;
   const c = changes[0];
+  const moved = c.previousAddress && c.previousAddress !== c.address ? `moved from ${c.previousAddress}` : '';
+  let what = actionHint(c);
+  // An import says so first: `import`, `import, then replace — forced by …`.
+  if (c.importing !== undefined) what = c.action === 'noop' ? 'import' : `import, then ${what}`;
+  else if (moved && c.action === 'noop') return moved;
+  return moved ? `${what} · ${moved}` : what;
+}
+
+function actionHint(c: Change): string {
   switch (c.action) {
     case 'replace':
       return c.replaceBy.length ? `replace — forced by ${c.replaceBy.join(', ')}` : 'replace';

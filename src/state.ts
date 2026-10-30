@@ -2,6 +2,7 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { Block, scanBlocks } from './model/hclScanner';
 import { BlockMark, matchPlan } from './model/matcher';
+import { Move, findMoves } from './model/refactor';
 import { Env } from './model/envs';
 import { Change, Plan } from './model/types';
 
@@ -11,6 +12,8 @@ export interface PlanState {
   /** Absolute fs path of the Terraform root the plan belongs to. */
   readonly root?: string;
   marksFor(relPath: string, text: string): BlockMark[];
+  /** The refactor move that would keep the object a create (or destroy) at this address is, if any. */
+  moveOf(address: string): Move | undefined;
   readonly onDidChange: vscode.Event<void>;
 }
 
@@ -25,6 +28,8 @@ export class PlanStore implements PlanState, vscode.Disposable {
   /** The env the running task is for; unset when nothing runs. */
   runEnv?: string;
   error?: string;
+  /** Destroy/create pairs of the plan that look like one object moved (refactor autopilot). */
+  moves: Move[] = [];
   private readonly emitter = new vscode.EventEmitter<void>();
   readonly onDidChange = this.emitter.event;
   private readonly scanCache = new Map<string, { text: string; blocks: Block[] }>();
@@ -38,12 +43,14 @@ export class PlanStore implements PlanState, vscode.Disposable {
     this.error = undefined;
     this.runEnv = undefined;
     this.scanCache.clear();
+    this.moves = findMoves(plan);
     await this.index();
     this.emitter.fire();
   }
 
   clear(): void {
     this.plan = undefined;
+    this.moves = [];
     this.locations = undefined;
     this.orphanList = [];
     this.scanCache.clear();
@@ -71,6 +78,10 @@ export class PlanStore implements PlanState, vscode.Disposable {
       this.scanCache.set(relPath, hit);
     }
     return matchPlan(this.plan, [{ path: relPath, blocks: hit.blocks }]).byFile.get(relPath) ?? [];
+  }
+
+  moveOf(address: string): Move | undefined {
+    return this.moves.find((m) => m.covers.some((c) => c.to === address || c.from === address));
   }
 
   orphans(): Change[] {

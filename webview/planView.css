@@ -155,3 +155,90 @@ body.plan { --gl-bg: var(--vscode-sideBar-background, var(--vscode-editor-backgr
 
 .spin { animation: pl-spin 1s linear infinite; }
 @keyframes pl-spin { to { transform: rotate(360deg); } }
+
+/* ---------- refactor autopilot: destroys that are moves ---------- */
+
+/* One lighter card, like the header: what can be kept, the moves to tick, and the way to write them. */
+.pl-moves { margin: 12px 0 2px; padding: 10px 10px 10px 12px; font-size: 13px; background: var(--gl-card); border: 1px solid color-mix(in srgb, var(--pl-create) 40%, transparent); border-radius: 12px; }
+.pl-moves .top { display: flex; align-items: center; gap: 8px; min-height: 22px; cursor: pointer; user-select: none; }
+.pl-moves .top b { font-weight: 600; color: var(--gl-fg); }
+.pl-moves .lead { flex: none; font-size: 15px; color: var(--pl-create); }
+.pl-moves .chev { flex: none; color: var(--gl-faint); }
+.pl-moves.shut .chev { transform: rotate(-90deg); }
+.pl-save { flex: none; padding: 1px 8px; font-size: 11.5px; color: var(--gl-muted); border-radius: 999px; background: color-mix(in srgb, var(--pl-create) 16%, transparent); }
+.pl-save b { font-family: var(--gl-mono); font-weight: 700; color: var(--pl-create); }
+.pl-moves .why { margin: 6px 0 8px; font-size: 11.5px; line-height: 1.45; color: var(--gl-muted); }
+.pl-moves .rows { display: flex; flex-direction: column; gap: 4px; }
+
+/* A move: tick, from (struck through: it stops existing there), → to, and the match on the right. */
+.pl-mv { display: flex; width: 100%; height: auto; justify-content: flex-start; align-items: flex-start; gap: 9px; padding: 7px 8px; font: inherit; text-align: left; color: inherit; white-space: normal;
+  background: color-mix(in srgb, var(--gl-bg) 35%, transparent); border: 1px solid var(--gl-line-strong); border-radius: 8px; }
+.pl-mv:hover { background: var(--gl-hover); }
+.pl-mv.on { border-color: color-mix(in srgb, var(--pl-create) 55%, transparent); background: color-mix(in srgb, var(--pl-create) 7%, transparent); }
+.pl-mv .pk { margin-top: 1px; }
+.pl-mv.on .pk { color: var(--pl-create); }
+.pl-mv .grow { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pl-mv .from { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--gl-mono); font-size: 11.5px; color: var(--gl-muted); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--pl-destroy) 60%, transparent); }
+.pl-mv .to { display: flex; align-items: center; gap: 4px; min-width: 0; font-family: var(--gl-mono); font-size: 12px; color: var(--gl-fg); }
+.pl-mv .to .codicon { flex: none; font-size: 12px; color: var(--pl-create); }
+.pl-mv .side { display: flex; flex: none; flex-direction: column; align-items: flex-end; gap: 3px; }
+.pl-mv .pct { font-family: var(--gl-mono); font-size: 11px; font-weight: 700; color: var(--pl-update); }
+.pl-mv .pct.full { color: var(--pl-create); }
+.pl-tag { padding: 0 6px; font-size: 10.5px; line-height: 15px; white-space: nowrap; color: var(--gl-muted); border: 1px solid var(--gl-line-strong); border-radius: 8px; }
+.pl-tag.amb { color: var(--pl-replace); border-style: dashed; border-color: color-mix(in srgb, var(--pl-replace) 60%, transparent); }
+.pl-moves .pl-more { margin: 4px 0 0 2px; }
+.pl-moves .gl-btn-pair { margin-top: 10px; }
+.pl-moves .gl-btn-pair > button { overflow: hidden; }
+.pl-moves .gl-btn-pair > button > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* In "Needs a look": a destroy that is really a move says where to. */
+.pl-orow .sub > .gl-chip { flex: none; }
+.pl-moves .why .amb { color: var(--pl-replace); }
+.pl-mvto { display: inline-flex; align-items: center; gap: 3px; font-family: var(--gl-mono); color: var(--pl-create); }
+.pl-mvto .codicon { flex: none; font-size: 11px; }
+
+/* Imports, drift, outputs. */
+.pl-tag.imp { flex: none; color: var(--pl-read); border-color: color-mix(in srgb, var(--pl-read) 55%, transparent); }
+.pl-row .pl-tag { align-self: center; }
+.pl-orow .sub > .pl-tag { flex: none; }
+.k-drift { --c: var(--pl-update); }
+.gl-ck .drift { color: var(--pl-update); }
+.pl-row .codicon.sym { font-size: 12px; }
+.pl-out { cursor: default; }
+
+/* Discreet sections: one faint line, opened on click (settings planLens.sidebar.*). */
+.pl-discreet { display: flex; width: 100%; height: 24px; justify-content: flex-start; gap: 6px; margin: 8px 0 0; padding: 0 6px; font: inherit; font-size: 11.5px; text-align: left; color: var(--gl-faint); background: transparent; border: none; border-radius: 5px; }
+.pl-discreet:hover { color: var(--gl-muted); background: var(--gl-hover); }
+.pl-discreet .codicon { flex: none; font-size: 12px; }
+.pl-discreet .go { visibility: hidden; }
+.pl-discreet:hover .go { visibility: visible; }
+
+/* ---------- settings page ---------- */
+
+.pl-head .icon.on { color: var(--gl-link); background: var(--gl-hover); }
+.pl-set-title { display: flex; align-items: center; gap: 8px; margin: 14px 4px 8px; font-size: 13px; }
+.pl-set-title b { font-weight: 600; color: var(--gl-fg); }
+.pl-set-title button { flex: none; height: 22px; gap: 4px; padding: 0 6px; font-size: 11.5px; }
+.pl-set-card { margin: 0 0 10px; padding: 6px 12px 4px; background: var(--gl-card); border: 1px solid var(--gl-border); border-radius: 12px; }
+.pl-set-group { margin: 4px 0 2px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--gl-muted); }
+.pl-set-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 9px 0; border-top: 1px solid var(--gl-line); }
+.pl-set-group + .pl-set-row { border-top: none; }
+.pl-set-row .txt { display: flex; flex: 1 1 150px; flex-direction: column; gap: 2px; min-width: 0; }
+.pl-set-row .lbl { font-size: 13px; color: var(--gl-fg); }
+.pl-set-row .help { font-size: 11.5px; line-height: 1.4; color: var(--gl-muted); }
+.pl-set-row .help.mono { font-family: var(--gl-mono); overflow-wrap: anywhere; }
+.pl-set-row > button.ghost { flex: none; height: 24px; padding: 0 10px; font-size: 12px; border: 1px solid var(--gl-line-strong); border-radius: 999px; }
+/* Visibility: a pill switch of three (Sixth's Plan | Act). */
+.pl-seg { display: inline-flex; flex: none; padding: 2px; gap: 2px; border-radius: 999px; background: var(--gl-inset); border: 1px solid var(--gl-line-strong); }
+.pl-seg button { height: 22px; padding: 0 9px; font-size: 11.5px; color: var(--gl-muted); background: transparent; border: none; border-radius: 999px; }
+.pl-seg button:hover { color: var(--gl-fg); background: var(--gl-hover); }
+.pl-seg button.on { color: var(--vscode-button-foreground, #fff); background: var(--vscode-button-background, var(--gl-accent)); }
+/* On / off: a round pill. */
+.pl-switch { position: relative; flex: none; width: 34px; height: 20px; padding: 0; border-radius: 999px; background: var(--gl-line-strong); border: 1px solid var(--gl-line-strong); }
+.pl-switch > i { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--gl-fg); transition: left 0.15s ease; }
+.pl-switch.on { background: var(--vscode-button-background, var(--gl-accent)); border-color: transparent; }
+.pl-switch.on > i { left: 16px; background: var(--vscode-button-foreground, #fff); }
+.pl-switch:hover { filter: brightness(1.1); }
+@media (prefers-reduced-motion: reduce) { .pl-switch > i { transition: none; } }
+.pl-input { flex: 1 1 140px; min-width: 0; height: 26px; padding: 0 10px; font: 12px var(--gl-mono); color: var(--vscode-input-foreground, var(--gl-fg)); background: var(--vscode-input-background, var(--gl-inset)); border: 1px solid var(--vscode-input-border, var(--gl-line-strong)); border-radius: 8px; }
+.pl-input:focus { outline: 1px solid var(--gl-accent); outline-offset: -1px; }

@@ -18,3 +18,30 @@ test('every registered command is contributed, and targeting is in the view menu
   assert.ok(registered.includes('planLens.targetPlan'));
   assert.ok(pkg.contributes.menus['view/title'].some((m) => m.command === 'planLens.targetPlan'));
 });
+
+test('terraform only runs in trusted workspaces; the binary setting is restricted there', () => {
+  assert.equal(pkg.capabilities.untrustedWorkspaces.supported, 'limited');
+  assert.ok(pkg.capabilities.untrustedWorkspaces.restrictedConfigurations.includes('planLens.terraformPath'));
+  assert.equal(pkg.capabilities.virtualWorkspaces.supported, false);
+  const runner = readFileSync(new URL('../../src/runner.ts', import.meta.url), 'utf8');
+  assert.match(runner, /if \(!vscode\.workspace\.isTrusted\)/);
+});
+
+test('the settings page list matches package.json (keys, types, defaults)', async () => {
+  const { createRequire } = await import('node:module');
+  const { SETTINGS, validSetting } = createRequire(import.meta.url)('../../out-test/model/settings.js');
+  const props = pkg.contributes.configuration.properties;
+  for (const s of SETTINGS) {
+    const p = props[`planLens.${s.key}`];
+    assert.ok(p, `planLens.${s.key} missing from package.json`);
+    assert.equal(p.default, s.default, `default of planLens.${s.key}`);
+    assert.equal(p.type, s.type === 'visibility' ? 'string' : s.type, `type of planLens.${s.key}`);
+    if (s.type === 'visibility') assert.deepEqual(p.enum, ['shown', 'discreet', 'hidden']);
+  }
+  assert.equal(props['planLens.sidebar.drift'].default, 'discreet');
+  assert.equal(validSetting('sidebar.drift', 'hidden').value, 'hidden');
+  assert.equal(validSetting('sidebar.drift', 'bogus'), undefined);
+  assert.equal(validSetting('allowApply', 'true'), undefined);
+  assert.equal(validSetting('environmentGlob', '**'), undefined);
+  assert.equal(validSetting('terraformPath', 'a\nb'), undefined);
+});

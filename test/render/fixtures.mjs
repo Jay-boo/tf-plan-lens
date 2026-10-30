@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { parsePlan } = require('../../out-test/model/planParser.js');
 const { toViewModel } = require('../../out-test/model/viewModel.js');
+const { findMoves } = require('../../out-test/model/refactor.js');
 
 const json = JSON.parse(readFileSync(new URL('../fixtures/plan.json', import.meta.url), 'utf8'));
 const plan = parsePlan(json, { env: 'QUAL', source: 'run', loadedAt: 0 });
@@ -20,6 +21,13 @@ const large = {
   })),
 };
 
+// A real refactor (terraform_data): renames, a move into a module, count → for_each; one ambiguous pair added.
+const refactorPlan = parsePlan(JSON.parse(readFileSync(new URL('../fixtures/refactor-plan.json', import.meta.url), 'utf8')), { env: 'QUAL', source: 'run', loadedAt: 0 });
+const refactorMoves = [...findMoves(refactorPlan), { id: 'azurerm_subnet.pe>module.network.azurerm_subnet.private_endpoints', from: 'azurerm_subnet.pe', to: 'module.network.azurerm_subnet.private_endpoints', type: 'azurerm_subnet', score: 0.86, ambiguous: true, covers: [{ from: 'azurerm_subnet.pe', to: 'module.network.azurerm_subnet.private_endpoints' }] }];
+
+// A real plan with drift, an import replaced right away, a moved object and output changes.
+const richPlan = parsePlan(JSON.parse(readFileSync(new URL('../fixtures/rich-plan.json', import.meta.url), 'utf8')), { env: 'QUAL', source: 'run', loadedAt: 0 });
+
 export const fixtures = {
   empty: toViewModel(undefined, { ...base, locate }),
   running: toViewModel(plan, { ...base, running: true, locate, tail }),
@@ -30,5 +38,8 @@ export const fixtures = {
   applyoff: toViewModel(plan, { ...base, locate, applyOff: true }),
   targeted: toViewModel({ ...plan, targets: ['module.storage', 'databricks_catalog.diapason_fresh'] }, { ...base, locate, canApply: true }),
   noenvs: toViewModel(undefined, { ...base, envs: [], env: undefined, envFolder: 'infra/envs/', locate }),
+  rich: toViewModel(richPlan, { ...base, locate: () => ({ file: 'main.tf', line: 7 }) }),
+  refactor: toViewModel(refactorPlan, { ...base, locate: () => undefined, moves: refactorMoves }),
+  refactorLoaded: toViewModel({ ...refactorPlan, env: '', source: '/tmp/plan.json' }, { ...base, locate: () => undefined, moves: refactorMoves.slice(0, 2) }),
   error: toViewModel(undefined, { ...base, locate, error: "Error: building AzureRM Client: please run 'az login' to setup account." }),
 };

@@ -107,3 +107,21 @@ test('looksLikeOtherRoot', () => {
   assert.equal(looksLikeOtherRoot(p, matchPlan(p, [{ path: 'main.tf', blocks: blocks(1) }]).orphans), true);
   assert.equal(looksLikeOtherRoot(p, matchPlan(p, [{ path: 'main.tf', blocks: blocks(3) }]).orphans), false);
 });
+
+test('hints for an import replaced right away and a moved object (real plan)', () => {
+  const { hoverMarkdown } = require('../../out-test/model/hoverMarkdown.js');
+  const { scanBlocks } = require('../../out-test/model/hclScanner.js');
+  const rich = parsePlan(JSON.parse(readFileSync(new URL('../fixtures/rich-plan.json', import.meta.url), 'utf8')), { env: 'QUAL', source: 'run', loadedAt: 0 });
+  const text = [
+    'resource "local_file" "conf" {', '}',
+    'resource "terraform_data" "new_name" { input = "kept" }',
+    'resource "random_string" "imp" {', '}',
+  ].join('\n');
+  const marks = matchPlan(rich, [{ path: 'main.tf', blocks: scanBlocks(text) }]).byFile.get('main.tf');
+  const hint = (name) => marks.find((m) => m.block.name === name).hint;
+  assert.equal(hint('new_name'), 'moved from terraform_data.old_name');
+  assert.match(hint('imp'), /^import, then replace — forced by /);
+  const conf = marks.find((m) => m.block.name === 'conf');
+  assert.match(hoverMarkdown(conf, rich.drift), /\*\*Changed outside Terraform\*\* · `local_file\.conf` · deleted/);
+  assert.match(hoverMarkdown(marks.find((m) => m.block.name === 'imp'), rich.drift), /Imported from id `abc` — .*then replaced/);
+});

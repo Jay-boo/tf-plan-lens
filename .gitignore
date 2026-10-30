@@ -6,3 +6,4 @@ out-render/
 *.vsix
 .vscode-test/
 test/demo/out/
+webview/__*

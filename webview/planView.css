@@ -301,11 +301,23 @@ body.plan { font-size: 13px; }
 .pl-body .gl-ck .n::before { content: none; }
 
 /* What needs a look: an accent bar, the action as a status, a wash of its colour (GitLens's permission card). */
-.pl-orow { position: relative; min-height: 50px; gap: 10px; margin: 0 0 4px; padding: 9px 10px 9px 13px; border: 1px solid var(--pl-line); border-radius: var(--pl-r);
-  background: linear-gradient(90deg, color-mix(in srgb, var(--c) 13%, transparent), transparent 70%); overflow: hidden; transition: transform .15s ease, border-color .15s ease; }
-.pl-orow::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--c); transition: width .15s ease; }
-.pl-orow:hover { transform: translateX(2px); border-color: color-mix(in srgb, var(--c) 50%, var(--pl-line)); background: linear-gradient(90deg, color-mix(in srgb, var(--c) 20%, transparent), transparent 80%); }
-.pl-orow:hover::before { width: 4px; }
+.pl-orow { position: relative; min-height: 50px; gap: 10px; margin: 0 0 5px; padding: 9px 10px 9px 13px; border: 1px solid var(--pl-line); border-radius: var(--pl-r);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--c) 13%, transparent), transparent 70%); overflow: hidden;
+  transition: transform .18s cubic-bezier(.2, .8, .3, 1), border-color .18s ease, box-shadow .18s ease, background-color .18s ease; }
+.pl-orow::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--c); transition: width .18s ease, box-shadow .18s ease; }
+/* Hover: the card lifts and glows in its action's colour, its bar widens, a sheen crosses it once, the arrow slides in. */
+.pl-orow::after { content: ''; position: absolute; top: 0; bottom: 0; left: -60%; width: 45%; pointer-events: none;
+  background: linear-gradient(100deg, transparent, color-mix(in srgb, #fff 9%, transparent), transparent); transform: skewX(-18deg); opacity: 0; }
+.pl-orow:hover, .pl-orow:focus-visible { transform: translateY(-1px); border-color: color-mix(in srgb, var(--c) 60%, var(--pl-line));
+  background-color: color-mix(in srgb, var(--c) 7%, transparent);
+  box-shadow: 0 6px 18px -8px color-mix(in srgb, var(--c) 70%, transparent), 0 0 0 1px color-mix(in srgb, var(--c) 18%, transparent); }
+.pl-orow:hover::before, .pl-orow:focus-visible::before { width: 4px; box-shadow: 0 0 12px 1px var(--c); }
+.pl-orow:hover::after { animation: pl-sheen .7s ease-out both; }
+@keyframes pl-sheen { from { left: -60%; opacity: 1; } to { left: 120%; opacity: 1; } }
+.pl-orow .go { transform: translateX(-4px); opacity: 0; transition: transform .18s ease, opacity .18s ease; }
+.pl-orow:hover .go, .pl-orow:focus-visible .go { visibility: visible; transform: none; opacity: 1; color: var(--c); }
+.pl-orow:hover .pl-verb { box-shadow: 0 0 10px -2px var(--c); }
+.pl-orow:active { transform: translateY(0); transition-duration: .05s; }
 .pl-orow .head { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .pl-orow .name { flex: 1 1 auto; min-width: 0; font-size: 13px; font-weight: 500; }
 .pl-orow .sub { margin-top: 3px; }
@@ -316,7 +328,10 @@ body.plan { font-size: 13px; }
 /* Every other list: a framed list, a squared action badge in front of each row (Thunder Client's method tags). */
 .pl-box { padding: 2px; border: 1px solid var(--pl-line); border-radius: var(--pl-r); }
 .pl-box .pl-row { min-height: 26px; gap: 8px; padding: 0 8px 0 4px; border-radius: 2px; font-size: 13px; }
-.pl-box .pl-row:hover { background: color-mix(in srgb, var(--c) 10%, var(--gl-hover)); }
+.pl-box .pl-row { position: relative; transition: background-color .15s ease; }
+.pl-box .pl-row:hover { background: color-mix(in srgb, var(--c) 10%, var(--gl-hover)); box-shadow: inset 2px 0 0 var(--c); }
+.pl-box .pl-row:hover .pl-sym { color: var(--gl-bg); background: var(--c); }
+.pl-sym { transition: color .15s ease, background-color .15s ease; }
 .pl-sym { display: inline-flex; flex: none; align-items: center; justify-content: center; min-width: 26px; height: 17px; padding: 0 3px; font: 700 11px var(--gl-mono);
   color: var(--c); background: color-mix(in srgb, var(--c) 15%, transparent); border-radius: 2px; }
 .pl-box .pl-more { margin: 2px 0 2px 6px; }
@@ -330,7 +345,8 @@ body.plan { font-size: 13px; }
 @keyframes pl-spin-border { to { --pl-angle: 360deg; } }
 .pl-moves .top b { letter-spacing: 0.01em; }
 .pl-save { border-radius: 2px; }
-.pl-mv { border-radius: var(--pl-r); }
+.pl-mv { border-radius: var(--pl-r); transition: transform .18s cubic-bezier(.2, .8, .3, 1), box-shadow .18s ease, border-color .18s ease; }
+.pl-mv:hover { transform: translateY(-1px); border-color: color-mix(in srgb, var(--pl-create) 60%, var(--pl-line)); box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--pl-create) 70%, transparent); }
 .pl-tag { border-radius: 2px; }
 
 /* Bottom: an apply line and the buttons — the primary one carries the gradient. */
@@ -372,5 +388,6 @@ body.plan { font-size: 13px; }
 @media (prefers-reduced-motion: reduce) {
   .pl-head::before, .pl-moves, .pl-tile.big, .pl-split.busy > i { animation: none; }
   .fresh .pl-strip > i, .fresh .pl-orow, .fresh .pl-box, .fresh .pl-discreet, .fresh .pl-moves, .pl-head .pl-state.ok .codicon { animation: none; }
-  .pl-orow, .pl-orow:hover { transition: none; transform: none; }
+  .pl-orow, .pl-orow:hover, .pl-orow:focus-visible, .pl-mv, .pl-mv:hover { transition: none; transform: none; }
+  .pl-orow:hover::after { animation: none; }
 }

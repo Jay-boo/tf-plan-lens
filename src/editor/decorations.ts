@@ -1,6 +1,5 @@
-import * as path from 'node:path';
 import * as vscode from 'vscode';
-import { BlockMark } from '../model/matcher';
+import { BlockMark, relUnder } from '../model/matcher';
 import { Action } from '../model/types';
 import { PlanState } from '../state';
 import { movedHint, movesInto } from './moves';
@@ -12,12 +11,7 @@ const LOOK: Record<Shown, 'create' | 'update' | 'replace' | 'destroy' | 'read'> 
 };
 const LOOKS = ['create', 'update', 'replace', 'destroy', 'read'] as const;
 
-/** Relative posix path of a file under the root, or undefined when outside it. */
-export function relUnder(root: string, file: string): string | undefined {
-  const rel = path.relative(root, file);
-  if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) return undefined;
-  return rel.split(path.sep).join('/');
-}
+export { relUnder };
 
 export class Decorations implements vscode.Disposable {
   private readonly band = new Map<string, vscode.TextEditorDecorationType>();
@@ -69,7 +63,7 @@ export class Decorations implements vscode.Disposable {
     let marks: BlockMark[] = [];
     const markers = vscode.workspace.getConfiguration('planLens').get<boolean>('editorMarkers', true);
     if (markers && this.store.plan && this.store.root && doc.uri.scheme === 'file' && doc.fileName.endsWith('.tf')) {
-      const rel = relUnder(this.store.root, doc.uri.fsPath);
+      const rel = relUnder(this.store.root, doc.uri.fsPath, this.store.plan.moduleDirs);
       if (rel) marks = this.store.marksFor(rel, doc.getText());
     }
     const showNoop = vscode.workspace.getConfiguration('planLens').get<boolean>('showUnchanged', true);

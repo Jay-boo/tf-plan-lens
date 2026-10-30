@@ -2,6 +2,8 @@
 
 ## 0.4.0
 
+- **Modules outside the root** (`source = "../modules/vm"`): their files get the plan too — band, hint, hover, refactor quick fix, preview on save — and the sidebar opens them.
+- Apply off? The Apply button offers to turn it on for the workspace, then asks its usual confirmation.
 - **New look**: a plan card with stat pills and a bar per change (the riskier the taller), bold icon headings, outlined boxes with icon tiles, an Apply bar; values as soft pills in the editor; a new icon.
 - **Preview your edit on save**: after a plan, saving plans just the edited blocks (`-target`, no refresh, no lock: read only) and says on the edited lines what that would do — `◆ preview: replace — forced by location`, `⟳ forces replacement`, `~ "LRS" → "GRS"`. Unapplied moved blocks are handled.
 - **Completions from your data**: map keys and object fields from the evaluated values after `local.x.`, `local.x["`, `var.x.`, `each.value.`.

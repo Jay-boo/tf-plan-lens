@@ -85,7 +85,7 @@ export class EditPreview implements vscode.Disposable {
     const root = this.store.root;
     if (!vscode.workspace.getConfiguration('planLens').get<boolean>('preview', true) || !vscode.workspace.isTrusted) return;
     if (!env || !plan || !plan.env || plan.env !== env.name || !root || root !== env.root || this.store.running) return;
-    const rel = relUnder(root, doc.uri.fsPath);
+    const rel = relUnder(root, doc.uri.fsPath, plan.moduleDirs);
     if (!rel || !doc.fileName.endsWith('.tf')) return;
     const before = this.baseline.get(doc.uri.fsPath);
     if (before === undefined) return void this.remember(doc);

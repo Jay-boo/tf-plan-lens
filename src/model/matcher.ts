@@ -2,6 +2,18 @@ import * as path from 'node:path';
 import { Block } from './hclScanner';
 import { Action, Change, Plan, SEVERITY, worst } from './types';
 
+/**
+ * Posix path of a file relative to the root, as the plan's addresses are matched: files under the root, and files of
+ * the local modules the plan calls even outside it (`../modules/vm/main.tf`). Undefined for anything else.
+ */
+export function relUnder(root: string, file: string, moduleDirs: Record<string, string> = {}): string | undefined {
+  const rel = path.relative(root, file);
+  if (!rel || path.isAbsolute(rel)) return undefined;
+  const posix = rel.split(path.sep).join('/');
+  if (!posix.startsWith('../')) return posix;
+  return Object.values(moduleDirs).includes(path.posix.dirname(posix)) ? posix : undefined;
+}
+
 export interface BlockMark {
   block: Block;
   changes: Change[];

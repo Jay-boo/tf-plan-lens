@@ -125,3 +125,17 @@ test('hints for an import replaced right away and a moved object (real plan)', (
   assert.match(hoverMarkdown(conf, rich.drift), /\*\*Changed outside Terraform\*\* · `local_file\.conf` · deleted/);
   assert.match(hoverMarkdown(marks.find((m) => m.block.name === 'imp'), rich.drift), /Imported from id `abc` — .*then replaced/);
 });
+
+test('modules outside the root (source = "../../modules/box"): their files get the plan (real plan)', () => {
+  const { relUnder } = require('../../out-test/model/matcher.js');
+  const { scanBlocks } = require('../../out-test/model/hclScanner.js');
+  const p = parsePlan(JSON.parse(readFileSync(new URL('../fixtures/outside-plan.json', import.meta.url), 'utf8')), { env: 'x', source: 'run', loadedAt: 0 });
+  const root = '/w/stacks/app';
+  const rel = relUnder(root, '/w/modules/box/main.tf', p.moduleDirs);
+  assert.equal(rel, '../../modules/box/main.tf');
+  assert.equal(relUnder(root, '/w/elsewhere/main.tf', p.moduleDirs), undefined);
+  assert.equal(relUnder(root, '/w/stacks/app/main.tf', p.moduleDirs), 'main.tf');
+  const text = 'variable "name" {}\nresource "terraform_data" "this" { input = var.name }';
+  const marks = matchPlan(p, [{ path: rel, blocks: scanBlocks(text) }]).byFile.get(rel);
+  assert.deepEqual(marks.map((m) => [m.block.name, m.action]), [['this', 'create']]);
+});

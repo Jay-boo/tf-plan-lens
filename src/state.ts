@@ -1,3 +1,4 @@
+import { readdir } from 'node:fs/promises';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { Block, scanBlocks } from './model/hclScanner';
@@ -99,6 +100,12 @@ export class PlanStore implements PlanState, vscode.Disposable {
     const plan = this.plan!;
     const root = this.root!;
     const uris = await vscode.workspace.findFiles(new vscode.RelativePattern(vscode.Uri.file(root), '**/*.tf'), '**/{.terraform,node_modules}/**');
+    // Local modules outside the root (`source = "../modules/vm"`): their files carry the plan too.
+    const outside = [...new Set(Object.values(plan.moduleDirs).filter((d) => d.startsWith('../')))];
+    for (const dir of outside) {
+      const abs = path.resolve(root, dir);
+      for (const f of await readdir(abs).catch(() => [] as string[])) if (f.endsWith('.tf')) uris.push(vscode.Uri.file(path.join(abs, f)));
+    }
     const files = await Promise.all(
       uris.map(async (u) => {
         const text = Buffer.from(await vscode.workspace.fs.readFile(u)).toString('utf8');

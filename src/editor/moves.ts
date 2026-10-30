@@ -27,7 +27,7 @@ export function registerMoveActions(ctx: vscode.ExtensionContext, store: PlanSta
   const provider: vscode.CodeActionProvider = {
     provideCodeActions(doc, range) {
       if (!store.plan || !store.root || doc.uri.scheme !== 'file') return;
-      const rel = relUnder(store.root, doc.uri.fsPath);
+      const rel = relUnder(store.root, doc.uri.fsPath, store.plan.moduleDirs);
       if (!rel) return;
       const mark = store.marksFor(rel, doc.getText()).find((m) => range.start.line >= m.block.startLine && range.start.line <= m.block.endLine);
       if (!mark) return;

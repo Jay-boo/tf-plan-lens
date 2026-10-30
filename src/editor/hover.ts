@@ -8,7 +8,7 @@ export function registerHover(ctx: vscode.ExtensionContext, store: PlanState): v
   const provider: vscode.HoverProvider = {
     provideHover(doc, pos) {
       if (!store.plan || !store.root || doc.uri.scheme !== 'file') return;
-      const rel = relUnder(store.root, doc.uri.fsPath);
+      const rel = relUnder(store.root, doc.uri.fsPath, store.plan.moduleDirs);
       if (!rel) return;
       const mark = store.marksFor(rel, doc.getText()).find((m) => pos.line >= m.block.startLine && pos.line <= m.block.endLine);
       if (!mark) return;

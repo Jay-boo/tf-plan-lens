@@ -49,6 +49,21 @@ runTests({
     if (destroys !== 1) throw new Error(`expected 1 destroy left, got ${destroys}`);
     console.log('  ✔ terraform agrees: 1 destroy left (the unrelated one)');
   })
+  .then(() => {
+    // A root calling a module outside its folder, like `source = "../../modules/vm"`.
+    const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-lens-e2e-outside-'));
+    fs.mkdirSync(path.join(outside, 'stacks/app'), { recursive: true });
+    fs.mkdirSync(path.join(outside, 'modules/box'), { recursive: true });
+    fs.writeFileSync(path.join(outside, 'modules/box/main.tf'), 'variable "name" {}\nresource "terraform_data" "this" { input = var.name }\n');
+    fs.writeFileSync(path.join(outside, 'stacks/app/main.tf'), 'module "box" {\n  source = "../../modules/box"\n  name   = "alpha"\n}\n');
+    return runTests({
+      vscodeExecutablePath: i > 0 ? process.argv[i + 1] : fs.existsSync(local) ? local : undefined,
+      extensionDevelopmentPath: root,
+      extensionTestsPath: path.join(__dirname, 'outside-suite.js'),
+      launchArgs: [outside, '--disable-extensions', '--disable-workspace-trust', '--user-data-dir', path.join(os.tmpdir(), 'plan-lens-e2e-user-outside')],
+      extensionTestsEnv: { PLAN_LENS_E2E: outside },
+    });
+  })
   .catch((e) => {
     console.error('Tests failed', e);
     process.exit(1);

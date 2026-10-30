@@ -86,3 +86,34 @@ test('inline and pretty HCL, instances', () => {
   assert.equal(instancesValue(3), '3 instances');
   assert.equal(instancesValue([]), 'no instances');
 });
+
+test('modules: outputs file, root locals through the calls, one value per instance (real terraform 1.14 output)', () => {
+  const { moduleBatchFile, moduleRootFile, moduleInstances, errorsByIndex, MODULE_EVAL_FILE } = require('../../out-test/model/evalBatch.js');
+  const { text, starts } = moduleBatchFile(['local.cidr', 'var.base']);
+  assert.match(text, /output "__pl_0" \{\n  value = try\(jsonencode\(\n    local\.cidr\n  \), "!plan-lens-err"\)\n\}/);
+  assert.equal(text.split('\n')[starts[1]], 'output "__pl_1" {');
+  assert.equal(moduleRootFile(1, [{ name: 'one', multi: false }, { name: 'many', multi: true }]).text.split('\n')[2],
+    '  __pl_0 = jsonencode({ one = { "" = module.one.__pl_0 }, many = { for k, m in module.many : k => m.__pl_0 } })');
+  const got = parseConsole('{\n  "e0" = "{\\"many\\":{\\"app\\":\\"\\\\\\"10.1.1.0/24\\\\\\"\\",\\"db\\":\\"\\\\\\"10.2.1.0/24\\\\\\"\\"},\\"one\\":{\\"\\":\\"\\\\\\"10.0.1.0/24\\\\\\"\\"}}"\n  "e1" = (sensitive value)\n}');
+  assert.deepEqual(moduleInstances(got.get(0)), [
+    { label: 'module.many["app"]', value: { kind: 'value', value: '10.1.1.0/24' } },
+    { label: 'module.many["db"]', value: { kind: 'value', value: '10.2.1.0/24' } },
+    { label: 'module.one', value: { kind: 'value', value: '10.0.1.0/24' } },
+  ]);
+  assert.deepEqual(moduleInstances(got.get(1)), [{ label: '', value: { kind: 'sensitive' } }]);
+  assert.deepEqual(moduleInstances({ kind: 'value', value: { c: { 0: '"x"' } } })[0].label, 'module.c[0]');
+  const err = '│ Error: Reference to undeclared local value\n│ \n│   on modules/net/zz_planlens_module_eval.tf line 3, in output "__pl_0":\n│    3:     local.nope\n│ \n│ A local value with the name "nope" has not been declared.\n';
+  assert.equal(errorsByIndex(err, starts, MODULE_EVAL_FILE).get(0), 'Reference to undeclared local value: A local value with the name "nope" has not been declared.');
+  assert.equal(errorsByIndex(err, starts).size, 0);
+});
+
+test('moduleCallsOf: the root calls of a module folder, multi with for_each / count', () => {
+  const { moduleCallsOf } = require('../../out-test/model/roots.js');
+  const root = '/r';
+  const files = [
+    { path: '/r/main.tf', text: 'module "lakebase" {\n  source = "./modules/lakebase"\n}\nmodule "lakebase_spn" {\n  source   = "./modules/lakebase/"\n  for_each = toset(["a"])\n}\nmodule "other" {\n  source = "./modules/x"\n}' },
+    { path: '/r/modules/lakebase/main.tf', text: 'module "inner" {\n  source = "../lakebase"\n}' },
+  ];
+  assert.deepEqual(moduleCallsOf(root, files, '/r/modules/lakebase'), [{ name: 'lakebase', multi: false }, { name: 'lakebase_spn', multi: true }]);
+  assert.deepEqual(moduleCallsOf(root, files, '/r/modules/none'), []);
+});

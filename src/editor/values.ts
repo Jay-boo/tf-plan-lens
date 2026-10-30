@@ -1,15 +1,18 @@
+import { readFileSync, readdirSync } from 'node:fs';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { Evaluator } from '../evaluator';
-import { EvalValue, inlineValue, instancesValue, prettyValue } from '../model/evalBatch';
+import { EvalValue, InstanceValue, inlineValue, instancesValue, prettyValue } from '../model/evalBatch';
 import { IDENT, completionSpot, eachValues, keysOf, walk } from '../model/complete';
 import { EvalTarget, evalTargets } from '../model/evalTargets';
 import { scanBlocks } from '../model/hclScanner';
+import { localModuleDirs } from '../model/roots';
 import { PlanStore } from '../state';
 
 interface Shown {
   target: EvalTarget;
-  value: EvalValue;
+  /** One per instance of the module the file is in (one unlabelled value in the root). */
+  values: InstanceValue[];
 }
 
 /** What the end of a line says for a value. */
@@ -22,9 +25,19 @@ export function valueText(t: EvalTarget, v: EvalValue): string {
   }
 }
 
+/** In a module: the first instance's value, which instance it is, and how many more (`· lakebase_spn (+1)`). */
+export function instancesText(t: EvalTarget, values: InstanceValue[]): string {
+  const [first] = values;
+  const text = valueText(t, first.value);
+  if (!first.label || first.value.kind === 'error') return text;
+  const more = values.length > 1 ? ` (+${values.length - 1})` : '';
+  return `${text}  · ${first.label.replace(/^module\./, '')}${more}`;
+}
+
 /**
- * Inline values: what locals, variables, for_each / count and outputs of the env's root module evaluate to, at the end
- * of their line and in a hover, computed by terraform console on Plan Lens's own copy of the configuration.
+ * Inline values: what locals, variables, for_each / count and outputs of the env's root module — and of the modules it
+ * calls, per instance — evaluate to, at the end of their line and in a hover, computed by terraform console on Plan
+ * Lens's own copy of the configuration.
  */
 export class InlineValues implements vscode.Disposable {
   // A soft pill in the inlay-hint colours, apart from the plan's coloured hints (VS Code has no padding or radius
@@ -41,7 +54,7 @@ export class InlineValues implements vscode.Disposable {
   /** By document: its version when evaluated, and the values by line. */
   private readonly shown = new Map<string, { version: number; env: string; byLine: Map<number, Shown> }>();
   /** Evaluate selection's last result, shown by the hover at that spot. */
-  private picked?: { uri: string; range: vscode.Range; expr: string; value: EvalValue };
+  private picked?: { uri: string; range: vscode.Range; expr: string; values: InstanceValue[] };
   private readonly subs: vscode.Disposable[] = [];
   private timer?: NodeJS.Timeout;
   private busy = false;
@@ -49,7 +62,7 @@ export class InlineValues implements vscode.Disposable {
   private envKey = '';
   private lastFailure = '';
   /** Values evaluated for completions, by env and expression, with the edits they were made with. */
-  private readonly asked = new Map<string, { edits: string; value: EvalValue }>();
+  private readonly asked = new Map<string, { edits: string; values: InstanceValue[] }>();
 
   constructor(private readonly store: PlanStore, private readonly evaluator: Evaluator, private readonly log: (s: string) => void) {
     const soon = (ms = 700) => {
@@ -80,11 +93,26 @@ export class InlineValues implements vscode.Disposable {
     return vscode.workspace.getConfiguration('planLens').get<boolean>('inlineValues', true) && vscode.workspace.isTrusted;
   }
 
-  /** Root module files of the env, as visible editors. */
-  private editors(): vscode.TextEditor[] {
+  /** The folder whose scope values of this file are evaluated in: the env's root, or a module folder the root calls. */
+  private scopeOf(file: string): string | undefined {
     const root = this.store.env?.root;
-    if (!root) return [];
-    return vscode.window.visibleTextEditors.filter((e) => e.document.uri.scheme === 'file' && e.document.fileName.endsWith('.tf') && path.dirname(e.document.uri.fsPath) === root);
+    if (!root || !file.endsWith('.tf')) return undefined;
+    const dir = path.dirname(file);
+    if (dir === root) return root;
+    // Module folders called from the root's own files (the evaluator reads the calls the same way).
+    const text = (f: string) => vscode.workspace.textDocuments.find((d) => d.uri.fsPath === f)?.getText() ?? readFileSync(f, 'utf8');
+    let called: string[] = [];
+    try {
+      called = readdirSync(root).filter((f) => f.endsWith('.tf')).flatMap((f) => localModuleDirs(root, text(path.join(root, f))));
+    } catch {
+      return undefined;
+    }
+    return called.some((d) => path.resolve(d) === path.resolve(dir)) ? dir : undefined;
+  }
+
+  /** Visible .tf files in the env's root or in a module it calls. */
+  private editors(): vscode.TextEditor[] {
+    return vscode.window.visibleTextEditors.filter((e) => e.document.uri.scheme === 'file' && this.scopeOf(e.document.uri.fsPath));
   }
 
   private overlays(): Map<string, string> {
@@ -110,22 +138,31 @@ export class InlineValues implements vscode.Disposable {
     if (!todo.length) return this.paint();
     this.busy = true;
     try {
-      const docs = [...new Set(todo.map((e) => e.document))];
-      const perDoc = docs.map((d) => evalTargets(d.getText()));
-      const exprs = [...new Set(perDoc.flat().map((t) => t.expr))];
+      // One evaluation per scope: the root, and each module folder shown.
+      const byScope = new Map<string, vscode.TextDocument[]>();
+      for (const d of new Set(todo.map((e) => e.document))) {
+        const scope = this.scopeOf(d.uri.fsPath)!;
+        byScope.set(scope, [...(byScope.get(scope) ?? []), d]);
+      }
       const first = !this.shown.size;
-      const job = this.evaluator.evaluate(env, exprs, this.overlays());
-      if (first) vscode.window.setStatusBarMessage(`$(sync~spin) Plan Lens: evaluating values for ${env.name}…`, job);
-      const values = await job;
-      const byExpr = new Map(exprs.map((e, i) => [e, values[i]]));
-      // Mid-edit the configuration often does not load at all: keep the last good values rather than one error each.
-      const broken = values.length > 1 && values.every((v) => v.kind === 'error' && v.message === (values[0] as { message: string }).message);
-      docs.forEach((d, k) => {
-        if (broken && this.shown.has(d.uri.toString())) return;
-        const byLine = new Map<number, Shown>();
-        for (const t of perDoc[k]) byLine.set(t.line, { target: t, value: byExpr.get(t.expr)! });
-        this.shown.set(d.uri.toString(), { version: d.version, env: env.name, byLine });
-      });
+      for (const [scope, docs] of byScope) {
+        const perDoc = docs.map((d) => evalTargets(d.getText()));
+        const exprs = [...new Set(perDoc.flat().map((t) => t.expr))];
+        if (!exprs.length) continue;
+        const job = this.evaluator.evaluate(env, exprs, this.overlays(), scope);
+        if (first) vscode.window.setStatusBarMessage(`$(sync~spin) Plan Lens: evaluating values for ${env.name}…`, job);
+        const values = await job;
+        const byExpr = new Map(exprs.map((e, i) => [e, values[i]]));
+        // Mid-edit the configuration often does not load at all: keep the last good values rather than one error each.
+        const firstMsg = values[0][0].value.kind === 'error' ? values[0][0].value.message : undefined;
+        const broken = values.length > 1 && firstMsg !== undefined && values.every((v) => v[0].value.kind === 'error' && v[0].value.message === firstMsg);
+        docs.forEach((d, k) => {
+          if (broken && this.shown.has(d.uri.toString())) return;
+          const byLine = new Map<number, Shown>();
+          for (const t of perDoc[k]) byLine.set(t.line, { target: t, values: byExpr.get(t.expr)! });
+          this.shown.set(d.uri.toString(), { version: d.version, env: env.name, byLine });
+        });
+      }
       this.lastFailure = '';
     } catch (e) {
       const msg = (e as Error).message;
@@ -150,8 +187,8 @@ export class InlineValues implements vscode.Disposable {
       if (s && s.version === e.document.version) {
         for (const [line, v] of s.byLine) {
           if (line >= e.document.lineCount) continue;
-          const opt = { range: e.document.lineAt(line).range, renderOptions: { after: { contentText: valueText(v.target, v.value) } } };
-          (v.value.kind === 'error' ? bad : ok).push(opt);
+          const opt = { range: e.document.lineAt(line).range, renderOptions: { after: { contentText: instancesText(v.target, v.values) } } };
+          (v.values[0].value.kind === 'error' ? bad : ok).push(opt);
         }
       }
       e.setDecorations(this.deco, ok);
@@ -161,52 +198,61 @@ export class InlineValues implements vscode.Disposable {
 
   private hover(doc: vscode.TextDocument, pos: vscode.Position): vscode.Hover | undefined {
     const p = this.picked;
-    if (p && p.uri === doc.uri.toString() && p.range.contains(pos)) return new vscode.Hover(this.markdown(p.expr, p.value, 'value'), p.range);
+    if (p && p.uri === doc.uri.toString() && p.range.contains(pos)) return new vscode.Hover(this.markdown(p.expr, p.values, 'value'), p.range);
     const v = this.shown.get(doc.uri.toString())?.byLine.get(pos.line);
     if (!v) return undefined;
-    return new vscode.Hover(this.markdown(v.target.expr, v.value, v.target.kind), doc.lineAt(pos.line).range);
+    return new vscode.Hover(this.markdown(v.target.expr, v.values, v.target.kind), doc.lineAt(pos.line).range);
   }
 
-  private markdown(expr: string, v: EvalValue, kind: string): vscode.MarkdownString {
+  private markdown(expr: string, values: InstanceValue[], kind: string): vscode.MarkdownString {
     const env = this.store.env?.name ?? '';
     const md = new vscode.MarkdownString(undefined, true);
-    md.appendMarkdown(`$(symbol-variable) **Value** · ${env}${kind === 'instances' ? ' · instances' : ''}\n\n`);
+    const inModule = !!values[0].label;
+    md.appendMarkdown(`$(symbol-variable) **Value** · ${env}${kind === 'instances' ? ' · instances' : ''}${inModule ? ` · ${values.length} module instance${values.length > 1 ? 's' : ''}` : ''}\n\n`);
     if (expr.length < 400) md.appendCodeblock(expr, 'terraform');
-    if (v.kind === 'value') {
-      if (kind === 'instances') md.appendMarkdown(`${instancesValue(v.value, 400)}\n\n`);
-      const pretty = prettyValue(v.value);
-      md.appendCodeblock(pretty.split('\n').length > 200 ? pretty.split('\n').slice(0, 200).join('\n') + '\n…' : pretty, 'terraform');
-    } else if (v.kind === 'unknown') md.appendMarkdown('*(known after apply)*: it depends on a resource attribute only the cloud knows.\n\n');
-    else if (v.kind === 'sensitive') md.appendMarkdown('*(sensitive)*: not shown.\n\n');
-    else md.appendMarkdown(`$(warning) ${v.message.replace(/[<>]/g, '')}\n\n`);
+    // In a module, each instance in turn (the first ones: a module called 50 times would drown the hover).
+    for (const { label, value: v } of values.slice(0, 8)) {
+      if (label) md.appendMarkdown(`**\`${label}\`**\n\n`);
+      if (v.kind === 'value') {
+        if (kind === 'instances') md.appendMarkdown(`${instancesValue(v.value, 400)}\n\n`);
+        const pretty = prettyValue(v.value);
+        const limit = inModule ? 40 : 200;
+        md.appendCodeblock(pretty.split('\n').length > limit ? pretty.split('\n').slice(0, limit).join('\n') + '\n…' : pretty, 'terraform');
+      } else if (v.kind === 'unknown') md.appendMarkdown('*(known after apply)*: it depends on a resource attribute only the cloud knows.\n\n');
+      else if (v.kind === 'sensitive') md.appendMarkdown('*(sensitive)*: not shown.\n\n');
+      else md.appendMarkdown(`$(warning) ${v.message.replace(/[<>]/g, '')}\n\n`);
+    }
+    if (values.length > 8) md.appendMarkdown(`*+ ${values.length - 8} more instances*\n\n`);
     md.appendMarkdown(`*terraform console on Plan Lens's own copy, ${env} variables, empty state.*`);
     return md;
   }
 
-  /** A value for completions: one already shown, else evaluated now (and kept until the files change). */
-  private async valueOf(expr: string): Promise<EvalValue | undefined> {
+  /** The values of an expression in a scope, for completions: already shown, else evaluated now (kept until the files change). */
+  private async valueOf(expr: string, scope: string): Promise<unknown[]> {
     const env = this.store.env;
-    if (!env) return undefined;
-    for (const s of this.shown.values()) {
-      if (s.env !== env.name) continue;
-      for (const v of s.byLine.values()) if (v.target.expr === expr) return v.value;
+    if (!env) return [];
+    const ok = (vs: InstanceValue[]) => vs.flatMap((x) => (x.value.kind === 'value' ? [x.value.value] : []));
+    for (const [uri, s] of this.shown) {
+      if (s.env !== env.name || path.dirname(vscode.Uri.parse(uri).fsPath) !== scope) continue;
+      for (const v of s.byLine.values()) if (v.target.expr === expr) return ok(v.values);
     }
     const edits = vscode.workspace.textDocuments.filter((d) => d.fileName.endsWith('.tf')).map((d) => `${d.uri}@${d.version}`).join('|');
-    const key = `${env.name}|${expr}`;
+    const key = `${env.name}|${scope}|${expr}`;
     const hit = this.asked.get(key);
-    if (hit && hit.edits === edits) return hit.value;
-    let [value] = await this.evaluator.evaluate(env, [expr], this.overlays());
+    if (hit && hit.edits === edits) return ok(hit.values);
+    let [values] = await this.evaluator.evaluate(env, [expr], this.overlays(), scope);
     // The line being typed usually breaks the file for a moment: the saved files then.
-    if (value.kind === 'error') [value] = await this.evaluator.evaluate(env, [expr], new Map());
-    this.asked.set(key, { edits, value });
-    return value;
+    if (values[0].value.kind === 'error') [values] = await this.evaluator.evaluate(env, [expr], new Map(), scope);
+    this.asked.set(key, { edits, values });
+    return ok(values);
   }
 
   /** Keys the value at the cursor really has: `local.x.`, `var.x["`, `each.value.` (from the block's for_each). */
   private async complete(doc: vscode.TextDocument, pos: vscode.Position): Promise<vscode.CompletionItem[] | undefined> {
     const env = this.store.env;
     if (!this.enabled() || !vscode.workspace.getConfiguration('planLens').get<boolean>('completions', true)) return undefined;
-    if (!env || doc.uri.scheme !== 'file' || path.dirname(doc.uri.fsPath) !== env.root) return undefined;
+    const scope = doc.uri.scheme === 'file' ? this.scopeOf(doc.uri.fsPath) : undefined;
+    if (!env || !scope) return undefined;
     const line = doc.lineAt(pos.line).text;
     const spot = completionSpot(line.slice(0, pos.character));
     if (!spot) return undefined;
@@ -214,14 +260,13 @@ export class InlineValues implements vscode.Disposable {
     if (spot.root === 'each.value') {
       const block = scanBlocks(doc.getText()).find((b) => pos.line >= b.startLine && pos.line <= b.endLine);
       const fe = block && evalTargets(doc.getText()).find((t) => t.kind === 'instances' && t.line > block.startLine && t.line < block.endLine);
-      const v = fe && (await this.valueOf(fe.expr));
-      if (v?.kind !== 'value') return undefined;
-      values = eachValues(v.value).map((x) => walk(x, spot.path));
+      if (!fe) return undefined;
+      // Every instance's for_each: the keys any element has.
+      values = (await this.valueOf(fe.expr, scope)).flatMap((v) => eachValues(v).map((x) => walk(x, spot.path)));
     } else {
-      const v = await this.valueOf(spot.root);
-      if (v?.kind !== 'value') return undefined;
-      values = [walk(v.value, spot.path)];
+      values = (await this.valueOf(spot.root, scope)).map((v) => walk(v, spot.path));
     }
+    if (!values.length) return undefined;
     const keys = keysOf(values);
     const typedStart = pos.translate(0, -spot.typed.length);
     const closed = line.slice(pos.character).startsWith('"]');
@@ -249,20 +294,21 @@ export class InlineValues implements vscode.Disposable {
     });
   }
 
-  /** Evaluates the selected expression (root module scope) and shows it in a hover there. */
+  /** Evaluates the selected expression (in the file's scope: the root or a module) and shows it in a hover there. */
   private async evaluateSelection(): Promise<void> {
     const e = vscode.window.activeTextEditor;
     const env = this.store.env;
     if (!e || e.selection.isEmpty) return void vscode.window.showInformationMessage('Plan Lens: select an expression to evaluate.');
     if (!env) return void vscode.window.showInformationMessage('Plan Lens: pick an environment first; values use its variables.');
-    if (path.dirname(e.document.uri.fsPath) !== env.root) {
-      return void vscode.window.showInformationMessage(`Plan Lens: values are evaluated in the root module (${path.basename(env.root)}); this file is not in it.`);
+    const scope = this.scopeOf(e.document.uri.fsPath);
+    if (!scope) {
+      return void vscode.window.showInformationMessage(`Plan Lens: values are evaluated in ${path.basename(env.root)} and the modules it calls; this file is in neither.`);
     }
     const expr = e.document.getText(e.selection).trim();
     try {
-      const [value] = await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Plan Lens: evaluating…' },
-        () => this.evaluator.evaluate(env, [expr], this.overlays()));
-      this.picked = { uri: e.document.uri.toString(), range: e.selection, expr, value };
+      const [values] = await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Plan Lens: evaluating…' },
+        () => this.evaluator.evaluate(env, [expr], this.overlays(), scope));
+      this.picked = { uri: e.document.uri.toString(), range: e.selection, expr, values };
       await vscode.commands.executeCommand('editor.action.showHover');
     } catch (err) {
       void vscode.window.showErrorMessage(`Plan Lens: ${(err as Error).message}`);

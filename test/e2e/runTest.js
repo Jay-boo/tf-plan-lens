@@ -38,7 +38,7 @@ runTests({
   extensionDevelopmentPath: root,
   extensionTestsPath: path.join(__dirname, 'suite.js'),
   launchArgs: [ws, '--disable-extensions', '--disable-workspace-trust', '--user-data-dir', path.join(os.tmpdir(), 'plan-lens-e2e-user')],
-  extensionTestsEnv: { PLAN_LENS_E2E: ws },
+  extensionTestsEnv: { PLAN_LENS_E2E: ws, PLAN_LENS_LOG_FILE: path.join(ws, '.plan-lens.log') },
 })
   .then(() => {
     // Terraform's own verdict on what Plan Lens wrote: only the unrelated destroy is left.

@@ -1,3 +1,4 @@
+import { appendFileSync } from 'node:fs';
 import * as vscode from 'vscode';
 import { LogBuffer, crlf, tailLines } from './model/logText';
 
@@ -21,6 +22,8 @@ export class PlanLog implements vscode.Disposable {
   private readonly sub = vscode.window.onDidCloseTerminal((t) => t === this.terminal && this.drop());
 
   append(s: string): void {
+    // Tests read what terraform said from a file (PLAN_LENS_LOG_FILE is only set by test/e2e).
+    if (process.env.PLAN_LENS_LOG_FILE) appendFileSync(process.env.PLAN_LENS_LOG_FILE, s);
     const t = crlf(s);
     this.buffer.push(t);
     if (this.open) this.writer!.fire(t);

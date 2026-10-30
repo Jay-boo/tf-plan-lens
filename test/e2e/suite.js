@@ -60,6 +60,18 @@ exports.run = async function () {
     assert.match(await hoverAt(main, 'for_each = { app'), /3 instances: "app", "db", "pe"/);
   });
 
+  await step('values in a module file: one per instance of every call', async () => {
+    const box = vscode.Uri.file(path.join(ws, 'modules/box/main.tf'));
+    await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(box), { preview: false });
+    // modules/box is called as module.new (name = "alpha") and module.inst["i0"], ["i1"] (for_each).
+    await until('the values of var.name in the module', async () => /module\.new/.test(await hoverAt(box, 'variable "name"')), 240000);
+    const text = await hoverAt(box, 'variable "name"');
+    assert.match(text, /3 module instances/);
+    assert.match(text, /\*\*`module\.new`\*\*\s*```terraform\s*"alpha"/);
+    assert.match(text, /\*\*`module\.inst\["i0"\]`\*\*\s*```terraform\s*"i0"/);
+    await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(main));
+  });
+
   await step('Evaluate selection: a value, then an error', async () => {
     const doc = await vscode.workspace.openTextDocument(main);
     const editor = await vscode.window.showTextDocument(doc);
@@ -126,7 +138,13 @@ exports.run = async function () {
     assert.match(text, /from = module\.old\n  to   = module\.new\n/);
     assert.match(text, /from = module\.inst\[0\]\n  to   = module\.inst\["i0"\]\n/);
     // The re-plan lands: the objects moved, so nothing is offered any more.
-    await until('the re-plan', async () => (await fixes(main, 'module "storage"')).length === 0 && (await fixes(main, 'module "new"')).length === 0);
+    await until('the re-plan', async () => (await fixes(main, 'module "storage"')).length === 0 && (await fixes(main, 'module "new"')).length === 0)
+      .catch((e) => {
+        // What terraform said, to see why the re-plan did not land.
+        const log = fs.existsSync(path.join(ws, '.plan-lens.log')) ? fs.readFileSync(path.join(ws, '.plan-lens.log'), 'utf8') : '(no log)';
+        console.log(`--- Plan Lens log (end) ---\n${log.replace(/\x1b\[[0-9;]*m/g, '').slice(-3500)}\n---`);
+        throw e;
+      });
   });
 
   await step('preview on save: an edited block says it will be replaced, before any plan', async () => {

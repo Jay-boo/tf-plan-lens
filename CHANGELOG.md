@@ -2,6 +2,7 @@
 
 ## 0.4.0
 
+- **Values and completions in module files**: locals, variables, `for_each` and outputs of the modules the root calls show their value for the environment — per instance (`= "10.1.1.0/24"  · subnet["app"] (+2)`), every instance in the hover. Evaluate selection works there too.
 - **Modules outside the root** (`source = "../modules/vm"`): their files get the plan too — band, hint, hover, refactor quick fix, preview on save — and the sidebar opens them.
 - Apply off? The Apply button offers to turn it on for the workspace, then asks its usual confirmation.
 - **New look**: a plan card with stat pills and a bar per change (the riskier the taller), bold icon headings, outlined boxes with icon tiles, an Apply bar; values as soft pills in the editor; a new icon.

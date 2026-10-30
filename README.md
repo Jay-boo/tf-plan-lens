@@ -51,6 +51,8 @@ What does `{ for s in var.services : s.name => s }` actually give for prod? Plan
 
 <p align="center"><img src="media/readme/values.gif" alt="Inline values for dev, completions from the data, then prod" width="100%"></p>
 
+It works in your **modules** too: a module file shows its values for each call of it (`module.subnet["app"]`, `["db"]`…), every instance in the hover.
+
 It is Terraform's own evaluator (`terraform console`) with the environment's variables, run on Plan Lens's own copy of your configuration with an **empty local state**: your team's state is never read or locked. Select any expression and run **Evaluate selection** to see its value.
 
 ## Know before you plan

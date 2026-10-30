@@ -3,6 +3,7 @@
 // once per workspace when it has some.
 import * as path from 'node:path';
 import { Env } from './envs';
+import { scanBlocks } from './hclScanner';
 
 const LOCAL_SOURCE = /\bsource\s*=\s*"(\.\.?\/[^"]*)"/g;
 
@@ -39,4 +40,24 @@ export function parseWorkspaceList(stdout: string): string[] {
 export function qualifyNames(envs: Env[], rootName: (root: string) => string): Env[] {
   if (new Set(envs.map((e) => e.root)).size < 2) return envs;
   return envs.map((e) => ({ ...e, name: `${rootName(e.root)}/${e.name}` }));
+}
+
+/**
+ * The calls of the module in `moduleDir` from the root's own files (`module "x" { source = "./modules/net" }`): their
+ * names, and whether they make several instances (for_each / count).
+ */
+export function moduleCallsOf(rootDir: string, files: { path: string; text: string }[], moduleDir: string): { name: string; multi: boolean }[] {
+  const calls: { name: string; multi: boolean }[] = [];
+  for (const f of files) {
+    if (path.dirname(f.path) !== rootDir) continue;
+    const lines = f.text.split(/\r?\n/);
+    for (const b of scanBlocks(f.text)) {
+      if (b.kind !== 'module') continue;
+      const body = lines.slice(b.startLine, b.endLine + 1).join('\n');
+      const src = /\bsource\s*=\s*"(\.\.?\/[^"]*)"/.exec(body)?.[1];
+      if (!src || path.resolve(rootDir, src) !== path.resolve(moduleDir)) continue;
+      calls.push({ name: b.name, multi: /^\s*(for_each|count)\s*=/m.test(body) });
+    }
+  }
+  return calls;
 }

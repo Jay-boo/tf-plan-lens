@@ -273,9 +273,13 @@ export function activate(ctx: vscode.ExtensionContext): void {
   async function apply(): Promise<void> {
     if (store.running) return;
     if (!config().get<boolean>('allowApply')) {
-      const b = await vscode.window.showInformationMessage('Plan Lens: Apply is off. Turn on "planLens.allowApply" to apply plans from here.', 'Open setting');
-      if (b) void vscode.commands.executeCommand('workbench.action.openSettings', 'planLens.allowApply');
-      return;
+      const b = await vscode.window.showInformationMessage(
+        'Plan Lens: Apply is off. Turn it on for this workspace? You still confirm each apply (and type the environment name when it destroys or replaces).',
+        { modal: true }, 'Turn on for this workspace');
+      if (b !== 'Turn on for this workspace') return;
+      const target = vscode.workspace.workspaceFolders?.length ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global;
+      await config().update('allowApply', true, target);
+      // Straight on to the apply's own confirmation.
     }
     const plan = store.plan;
     const s = saved;

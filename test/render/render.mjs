@@ -46,7 +46,7 @@ for (const theme of Object.keys(themes)) {
   writeFileSync(file, html(theme));
   writeFileSync(join(root, `webview/__theme-${theme}.css`), themeCss(theme));
   for (const width of [260, 360, 500]) {
-    const page = await browser.newPage({ viewport: { width, height: 900 } });
+    const page = await browser.newPage({ viewport: { width, height: 900 }, reducedMotion: 'reduce' }); // still frames: no animation mid-way
     page.on('console', (m) => /Content Security Policy/.test(m.text()) && (failures++, console.log(`CSP ${theme} ${width}: ${m.text().slice(0, 120)}`)));
     await page.goto('file://' + file);
     for (const [name, model] of Object.entries(fixtures)) {

@@ -242,78 +242,135 @@ body.plan { --gl-bg: var(--vscode-sideBar-background, var(--vscode-editor-backgr
 .pl-input:focus { outline: 1px solid var(--gl-accent); outline-offset: -1px; }
 
 /* =====================================================================================================================
-   Look: a plan card with stat pills and a bar strip (after task cards like Sixth's and Kilo Code's token chart), bold
-   icon headings, outlined boxes with tinted icon tiles, an apply bar and navy / blue buttons at the bottom.
+   Look: native and sharp, after GitLens, Thunder Client and Augment — 2–4px corners, crisp 1px lines, uppercase
+   section heads, an accent bar on what needs a look, squared action badges — with one signature gradient
+   (violet → blue → cyan) and motion where it means something: a new plan counts in, bars grow, rows slide in.
    ===================================================================================================================== */
 
+:root {
+  --pl-g1: #8b5cf6;
+  --pl-g2: #3b82f6;
+  --pl-g3: #06b6d4;
+  --pl-grad: linear-gradient(90deg, var(--pl-g1), var(--pl-g2), var(--pl-g3), var(--pl-g1));
+  --pl-r: 3px;
+  --pl-line: color-mix(in srgb, var(--gl-fg) 12%, transparent);
+}
 body.plan { font-size: 13px; }
 
-/* Plan card: lighter, raised, the one card of the view. */
-.pl-head { margin: 10px 10px 0; padding: 12px 10px 12px 14px; border-radius: 14px;
-  background: color-mix(in srgb, var(--gl-fg) 10%, var(--gl-bg));
-  box-shadow: 0 -10px 0 var(--gl-bg), 0 8px 22px -6px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.45)); }
+/* Header: a flat KPI panel under a flowing gradient edge. */
+.pl-head { margin: 0; padding: 12px 10px 12px 14px; border: none; border-bottom: 1px solid var(--pl-line); border-radius: 0;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--pl-g1) 9%, var(--gl-bg)), var(--gl-bg) 85%);
+  box-shadow: none; }
+.pl-head::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--pl-grad); background-size: 300% 100%; animation: pl-flow 6s linear infinite; }
+@keyframes pl-flow { to { background-position: 300% 0; } }
 .pl-head .top { min-height: 26px; }
-.pl-env { height: 26px; gap: 7px; font-size: 14.5px; font-weight: 700; }
-.pl-env .codicon { font-size: 15px; }
-.pl-stats { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; }
-.pl-stat { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px; font-size: 12px; color: var(--gl-muted);
-  border: 1px solid var(--gl-line-strong); border-radius: 999px; background: color-mix(in srgb, var(--gl-bg) 45%, transparent); }
-.pl-stat b { font-family: var(--gl-mono); font-weight: 700; color: var(--c); }
-.pl-stat .codicon { font-size: 13px; color: var(--c); }
+.pl-env { height: 26px; gap: 7px; font-size: 14px; font-weight: 700; letter-spacing: 0.01em; }
+.pl-env .codicon { font-size: 15px; color: var(--pl-g2); }
+.pl-kpis { display: flex; flex-wrap: wrap; gap: 0; margin: 12px 0 0; border: 1px solid var(--pl-line); border-radius: var(--pl-r); background: color-mix(in srgb, var(--gl-bg) 70%, transparent); }
+.pl-kpi { display: flex; flex: 1 1 56px; flex-direction: column; gap: 1px; min-width: 56px; padding: 6px 10px 7px; border-left: 1px solid var(--pl-line); }
+.pl-kpi:first-child { border-left: none; }
+.pl-kpi b { font: 700 20px/1.1 var(--gl-mono); color: var(--c); font-variant-numeric: tabular-nums; }
+.pl-kpi span { font-size: 9.5px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--gl-muted); }
+.pl-kpi.none { flex-direction: row; align-items: center; gap: 8px; }
+.pl-kpi.none .codicon { font-size: 18px; color: var(--c); }
+.pl-kpi.none span { font-size: 11px; }
 .pl-meta { gap: 6px; margin: 9px 6px 0 1px; font-size: 11.5px; color: var(--gl-faint); }
 .pl-meta > .codicon { flex: none; font-size: 12px; }
 /* Bar strip: one bar per change, the riskier the taller. */
-.pl-strip { display: flex; align-items: flex-end; gap: 2px; height: 22px; margin: 11px 4px 0 1px; }
-.pl-strip > i { flex: 1 1 0; max-width: 18px; min-width: 2px; border-radius: 2px 2px 1px 1px; background: var(--c); opacity: 0.92; }
+.pl-strip { display: flex; align-items: flex-end; gap: 2px; height: 24px; margin: 11px 2px 0 1px; }
+.pl-strip > i { flex: 1 1 0; max-width: 16px; min-width: 2px; border-radius: 1px; background: linear-gradient(180deg, var(--c), color-mix(in srgb, var(--c) 55%, transparent)); transform-origin: bottom; }
 .pl-strip > i.k-destroy { height: 100%; }
-.pl-strip > i.k-replace { height: 82%; }
-.pl-strip > i.k-update { height: 55%; }
-.pl-strip > i.k-create { height: 40%; }
-.pl-split { height: 4px; margin-top: 12px; }
+.pl-strip > i.k-replace { height: 80%; }
+.pl-strip > i.k-update { height: 52%; }
+.pl-strip > i.k-create { height: 36%; }
+/* Planning: the gradient runs through the bar. */
+.pl-split { height: 3px; margin-top: 12px; border-radius: 0; }
+.pl-split.busy > i { width: 45%; background: var(--pl-grad); background-size: 200% 100%; animation: pl-slide 1.1s cubic-bezier(.6, 0, .4, 1) infinite, pl-flow 2s linear infinite; }
+.pl-head .pl-state.ok .codicon { animation: pl-pop .5s cubic-bezier(.3, 1.6, .5, 1) both; }
+@keyframes pl-pop { from { transform: scale(0) rotate(-30deg); opacity: 0; } to { transform: none; opacity: 1; } }
 
-/* Bold icon headings, no rules. */
+/* Section heads: small caps, a count, a solid line (GitLens). */
 .pl-body { padding: 0 10px; }
-.pl-body .gl-ck { margin: 20px 0 8px; padding: 0 2px; font-size: 13px; }
-.pl-body .gl-ck::after { display: none; }
-.pl-body .gl-ck .name { gap: 7px; font-weight: 700; color: var(--gl-fg); }
-.pl-body .gl-ck .name .codicon { font-size: 14px; }
-.pl-body .gl-ck .name .codicon.chev { font-size: 12px; color: var(--gl-faint); }
+.pl-body .gl-ck { margin: 18px 0 7px; padding: 0 2px; font-size: 11px; }
+.pl-body .gl-ck::after { display: block; border-top: 1px solid var(--pl-line); }
+.pl-body .gl-ck .name { gap: 6px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gl-muted); }
+.pl-body .gl-ck .name .codicon { font-size: 13px; }
+.pl-body .gl-ck .name .codicon.chev { font-size: 11px; color: var(--gl-faint); }
 .pl-body .gl-ck .name .k-create, .pl-body .gl-ck .name .k-update, .pl-body .gl-ck .name .k-read { color: var(--c); }
-.pl-body .gl-ck .n { font-size: 12px; }
+.pl-body .gl-ck .n { order: 2; padding: 0 5px; font: 600 10px/15px var(--gl-mono); color: var(--gl-fg); border-radius: 2px; background: var(--pl-line); }
+.pl-body .gl-ck .n::before { content: none; }
 
-/* Risky changes: big outlined boxes with a tinted icon tile. */
-.pl-orow { min-height: 52px; gap: 11px; margin: 0 0 7px; padding: 10px 12px; border: 1px solid var(--gl-line-strong); border-radius: 12px; }
-.pl-orow:hover { border-color: color-mix(in srgb, var(--c) 45%, var(--gl-line-strong)); }
-.pl-orow .name { font-size: 13.5px; }
-.pl-orow .sub { margin-top: 4px; }
-.pl-tile { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 9px;
-  color: var(--c); background: color-mix(in srgb, var(--c) 16%, transparent); }
-.pl-tile > .codicon { font-size: 15px; }
-.pl-orow > .pl-tile { margin-top: 0; }
-.pl-tile.big { width: 44px; height: 44px; margin: 0 auto 10px; border-radius: 13px; --c: var(--gl-link); }
-.pl-tile.big > .codicon { font-size: 22px; }
-.gl-empty > .pl-tile.big { display: flex; }
+/* What needs a look: an accent bar, the action as a status, a wash of its colour (GitLens's permission card). */
+.pl-orow { position: relative; min-height: 50px; gap: 10px; margin: 0 0 4px; padding: 9px 10px 9px 13px; border: 1px solid var(--pl-line); border-radius: var(--pl-r);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--c) 13%, transparent), transparent 70%); overflow: hidden; transition: transform .15s ease, border-color .15s ease; }
+.pl-orow::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--c); transition: width .15s ease; }
+.pl-orow:hover { transform: translateX(2px); border-color: color-mix(in srgb, var(--c) 50%, var(--pl-line)); background: linear-gradient(90deg, color-mix(in srgb, var(--c) 20%, transparent), transparent 80%); }
+.pl-orow:hover::before { width: 4px; }
+.pl-orow .head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.pl-orow .name { flex: 1 1 auto; min-width: 0; font-size: 13px; font-weight: 500; }
+.pl-orow .sub { margin-top: 3px; }
+.pl-orow .go { margin-top: 1px; }
+.pl-verb { flex: none; padding: 0 5px; font: 700 9.5px/16px var(--gl-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 55%, transparent); border-radius: 2px; }
+.pl-orow.k-forget .pl-verb, .pl-orow.k-destroy .pl-verb { color: var(--gl-bg); background: var(--c); border-color: var(--c); }
 
-/* Every other list: one outlined box, dense rows inside. */
-.pl-box { padding: 4px; border: 1px solid var(--gl-line-strong); border-radius: 12px; }
-.pl-box .pl-row { min-height: 28px; padding: 0 8px 0 10px; border-radius: 8px; font-size: 13px; }
-.pl-box .pl-more { margin: 2px 0 2px 10px; }
+/* Every other list: a framed list, a squared action badge in front of each row (Thunder Client's method tags). */
+.pl-box { padding: 2px; border: 1px solid var(--pl-line); border-radius: var(--pl-r); }
+.pl-box .pl-row { min-height: 26px; gap: 8px; padding: 0 8px 0 4px; border-radius: 2px; font-size: 13px; }
+.pl-box .pl-row:hover { background: color-mix(in srgb, var(--c) 10%, var(--gl-hover)); }
+.pl-sym { display: inline-flex; flex: none; align-items: center; justify-content: center; min-width: 26px; height: 17px; padding: 0 3px; font: 700 11px var(--gl-mono);
+  color: var(--c); background: color-mix(in srgb, var(--c) 15%, transparent); border-radius: 2px; }
+.pl-box .pl-more { margin: 2px 0 2px 6px; }
+.pl-discreet { border-radius: 2px; }
 
-/* The refactor card and the settings page follow the same radius. */
-.pl-moves { border-radius: 14px; }
+/* Refactor: the card that saves the day gets a living border. */
+@property --pl-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+.pl-moves { position: relative; border: 1px solid transparent; border-radius: 4px;
+  background: linear-gradient(var(--gl-card), var(--gl-card)) padding-box, conic-gradient(from var(--pl-angle), var(--pl-g1), var(--pl-g2), var(--pl-g3), var(--pl-create), var(--pl-g1)) border-box;
+  animation: pl-spin-border 5s linear infinite; }
+@keyframes pl-spin-border { to { --pl-angle: 360deg; } }
+.pl-moves .top b { letter-spacing: 0.01em; }
+.pl-save { border-radius: 2px; }
+.pl-mv { border-radius: var(--pl-r); }
+.pl-tag { border-radius: 2px; }
 
-/* Bottom: apply bar (like an auto-approve bar), then the two buttons. */
-.pl-foot { padding: 10px 10px 10px; }
-.pl-applybar { display: flex; width: 100%; height: 36px; justify-content: flex-start; gap: 8px; margin: 0 0 8px; padding: 0 10px 0 12px; font: inherit; font-size: 13px; text-align: left;
-  color: var(--gl-fg); background: color-mix(in srgb, var(--gl-fg) 6%, var(--gl-bg)); border: 1px solid var(--gl-line-strong); border-radius: 10px; }
-.pl-applybar:hover { background: color-mix(in srgb, var(--gl-fg) 10%, var(--gl-bg)); }
+/* Bottom: an apply line and the buttons — the primary one carries the gradient. */
+.pl-foot { padding: 10px 10px 10px; border-top: 1px solid var(--pl-line); box-shadow: 0 -12px 12px -4px var(--gl-bg); }
+.pl-applybar { display: flex; width: 100%; height: 32px; justify-content: flex-start; gap: 8px; margin: 0 0 8px; padding: 0 8px 0 10px; font: inherit; font-size: 12.5px; text-align: left;
+  color: var(--gl-fg); background: transparent; border: 1px solid var(--pl-line); border-radius: var(--pl-r); }
+.pl-applybar:hover { background: var(--gl-hover); }
 .pl-applybar > .codicon:first-child { color: var(--gl-muted); }
 .pl-applybar .go { color: var(--gl-faint); }
-.pl-pill { flex: none; padding: 1px 9px; font-size: 11.5px; border-radius: 999px; color: var(--gl-muted); background: var(--gl-line-strong); }
-.pl-pill.on { color: var(--vscode-button-foreground, #fff); background: var(--vscode-button-background, var(--gl-accent)); }
-.pl-foot .gl-btn-pair > button { height: 36px; font-size: 13.5px; border-radius: 8px; }
-.pl-foot .gl-btn-pair > button:not(.primary), .pl-moves .gl-btn-pair > button:not(.primary) {
-  color: var(--gl-fg); background: color-mix(in srgb, var(--vscode-button-background, #0078d4) 22%, var(--gl-bg));
-  border: 1px solid color-mix(in srgb, var(--vscode-button-background, #0078d4) 50%, transparent); }
-.pl-foot .gl-btn-pair > button:not(.primary):hover:not(:disabled), .pl-moves .gl-btn-pair > button:not(.primary):hover:not(:disabled) {
-  background: color-mix(in srgb, var(--vscode-button-background, #0078d4) 34%, var(--gl-bg)); }
+.pl-pill { flex: none; padding: 0 6px; font: 700 9.5px/16px var(--gl-mono); letter-spacing: 0.08em; text-transform: uppercase; border-radius: 2px; color: var(--gl-muted); background: var(--pl-line); }
+.pl-pill.on { color: #fff; background: var(--pl-grad); background-size: 300% 100%; }
+.pl-foot .gl-btn-pair > button, .pl-moves .gl-btn-pair > button { height: 32px; font-size: 13px; font-weight: 600; border-radius: var(--pl-r); }
+.pl-foot .gl-btn-pair > button.primary, .pl-moves .gl-btn-pair > button.primary { color: #fff; border: none; background: var(--pl-grad); background-size: 300% 100%; background-position: 0 0; transition: background-position .6s ease, box-shadow .2s ease; }
+.pl-foot .gl-btn-pair > button.primary:hover:not(:disabled), .pl-moves .gl-btn-pair > button.primary:hover:not(:disabled) { background-position: 100% 0; box-shadow: 0 0 0 1px color-mix(in srgb, var(--pl-g2) 60%, transparent), 0 4px 16px -4px var(--pl-g2); }
+.pl-foot .gl-btn-pair > button:not(.primary), .pl-moves .gl-btn-pair > button:not(.primary) { color: var(--gl-fg); background: transparent; border: 1px solid var(--pl-line); }
+.pl-foot .gl-btn-pair > button:not(.primary):hover:not(:disabled), .pl-moves .gl-btn-pair > button:not(.primary):hover:not(:disabled) { background: var(--gl-hover); border-color: color-mix(in srgb, var(--gl-fg) 25%, transparent); }
+
+/* Settings and the empty state follow the same corners. */
+.pl-set-card { border-radius: 4px; background: transparent; border: 1px solid var(--pl-line); }
+.pl-set-group { letter-spacing: 0.09em; }
+.pl-seg, .pl-seg button { border-radius: 2px; }
+.pl-seg button.on { background: var(--pl-grad); background-size: 300% 100%; color: #fff; }
+.pl-switch.on { background: var(--pl-grad); background-size: 300% 100%; }
+.pl-input { border-radius: var(--pl-r); }
+.pl-set-row > button.ghost { border-radius: var(--pl-r); }
+.pl-env-row { border-radius: var(--pl-r); }
+.pl-tile.big { width: 46px; height: 46px; margin: 0 auto 10px; border-radius: 6px; color: #fff; background: var(--pl-grad); background-size: 300% 100%; animation: pl-flow 6s linear infinite; box-shadow: 0 6px 24px -6px var(--pl-g2); }
+.pl-tile.big > .codicon { font-size: 22px; }
+.gl-empty > .pl-tile.big { display: flex; align-items: center; justify-content: center; }
+.pl-target { border-radius: var(--pl-r); }
+
+/* A new plan arrives: bars grow one after another, rows slide in, numbers count up (planView.js). */
+.fresh .pl-strip > i { animation: pl-grow .5s cubic-bezier(.2, .9, .3, 1.2) both; animation-delay: calc(var(--i, 0) * 18ms); }
+@keyframes pl-grow { from { transform: scaleY(0); } }
+.fresh .pl-orow, .fresh .pl-box, .fresh .pl-moves, .fresh .pl-discreet { animation: pl-in .38s cubic-bezier(.2, .8, .3, 1) both; animation-delay: calc(var(--i, 0) * 45ms + 120ms); }
+@keyframes pl-in { from { opacity: 0; transform: translateY(6px); } }
+.fresh .pl-moves { animation: pl-in .38s cubic-bezier(.2, .8, .3, 1) both, pl-spin-border 5s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pl-head::before, .pl-moves, .pl-tile.big, .pl-split.busy > i { animation: none; }
+  .fresh .pl-strip > i, .fresh .pl-orow, .fresh .pl-box, .fresh .pl-discreet, .fresh .pl-moves, .pl-head .pl-state.ok .codicon { animation: none; }
+  .pl-orow, .pl-orow:hover { transition: none; transform: none; }
+}

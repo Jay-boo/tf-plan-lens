@@ -69,14 +69,14 @@
       h('button', { class: `icon${settingsOpen ? ' on' : ''}`, title: 'Settings', 'aria-label': 'Settings', 'aria-pressed': String(settingsOpen), onclick: () => { settingsOpen = !settingsOpen; render(); } }, icon('settings-gear')));
     const kids = [top];
     if (m.state === 'ready' || (running && m.sub)) {
-      // Stat pills, like a task card's: what the plan does, in Terraform's symbols.
-      const stats = h('div', { class: 'pl-stats' });
+      // KPI cells: what the plan does, a big number per action.
+      const stats = h('div', { class: 'pl-kpis' });
       for (const a of ['create', 'update', 'replace', 'destroy', 'import']) {
         if (!m.counts[a]) continue;
-        stats.append(h('span', { class: `pl-stat k-${a === 'import' ? 'read' : a}`, title: `${m.counts[a]} to ${a}` },
-          h('b', { text: `${{ create: '+', update: '~', replace: '±', destroy: '−', import: '↓' }[a]}${m.counts[a]}` }), h('span', { text: a })));
+        stats.append(h('div', { class: `pl-kpi k-${a === 'import' ? 'read' : a}`, title: `${m.counts[a]} to ${a}` },
+          h('b', { text: String(m.counts[a]) }), h('span', { text: a })));
       }
-      if (!stats.childElementCount) stats.append(h('span', { class: 'pl-stat k-create' }, icon('pass'), h('span', { text: 'no changes' })));
+      if (!stats.childElementCount) stats.append(h('div', { class: 'pl-kpi none k-create' }, icon('pass'), h('span', { text: 'no changes' })));
       kids.push(stats);
       // The folder name may be long; only it gets cut, the age and version stay visible.
       const [origin, ...rest] = m.sub.split(' · ');
@@ -86,7 +86,7 @@
       kids.push(h('div', { class: `pl-split busy${m.applying ? ' apply' : ''}`, role: 'progressbar', 'aria-label': m.applying ? 'Applying' : 'Planning' }, h('i')));
     } else if (m.strip.length) {
       // The blast radius at a glance: one bar per change, worst (tallest) first.
-      kids.push(h('div', { class: 'pl-strip', role: 'img', 'aria-label': `Change mix: ${m.strip.length} bars, worst first` }, m.strip.map((a) => h('i', { class: `k-${a}` }))));
+      kids.push(h('div', { class: 'pl-strip', role: 'img', 'aria-label': `Change mix: ${m.strip.length} bars, worst first` }, m.strip.map((a, i) => h('i', { class: `k-${a}`, style: `--i:${i}` }))));
     }
     if (running) kids.push(h('button', { class: 'pl-tail', title: 'Open the full log', onclick: () => post('log') }, tailText(m.tail)));
     return h('header', { class: 'pl-head' }, kids);
@@ -137,7 +137,7 @@
 
   /** A risky change: outlined, two lines (what, then why). */
   function orow(it) {
-    const sub = h('div', { class: 'sub' }, h('span', { class: `gl-chip k-${it.action}` }, h('i', { class: 'dot' }), it.action));
+    const sub = h('div', { class: 'sub' });
     // A destroy that is really a move: where it goes says more than why it is destroyed.
     for (const s of it.movesTo ? [] : it.sub) {
       const m = /^forced by (.*)$/.exec(s);
@@ -149,8 +149,8 @@
     if (it.movesTo) sub.append(h('span', { class: 'pl-mvto', title: `Looks moved to ${it.movesTo}` }, icon('arrow-right'), h('span', { text: shortAddr(it.movesTo) })));
     else if (it.module) sub.append(h('span', { class: 'faint', text: it.module }));
     return h('button', { class: `gl-orow pl-orow k-${it.action}${rowCls(it)}`, title: tip(it), 'data-address': it.address, onclick: () => open(it) },
-      pick ? check(it.address) : h('span', { class: `pl-tile k-${it.action}` }, icon(ICON[it.action])),
-      h('div', { class: 'grow' }, h('span', { class: 'name', text: it.title }), sub),
+      pick ? check(it.address) : null,
+      h('div', { class: 'grow' }, h('div', { class: 'head' }, h('span', { class: 'name', text: it.title }), h('span', { class: `pl-verb k-${it.action}`, text: it.action })), sub),
       pick ? null : icon(it.orphan ? 'copy' : 'go-to-file', 'go'));
   }
 
@@ -215,12 +215,13 @@
       : it.importing !== undefined && it.action !== 'update' ? h('span', { class: 'dir mono', title: `import id: ${it.importing}`, text: `id ${it.importing}` })
       : it.action === 'update' && it.sub[0] ? h('span', { class: 'dir mono', text: it.sub[0] })
       : h('span', { class: 'dir', text: it.module || '' });
+    // A squared action badge first, like an HTTP method tag.
+    const sym = it.movedFrom && it.action === 'noop' ? '→' : it.importing !== undefined && it.action === 'noop' ? '↓' : SYM[it.action];
     return h('button', { class: `pl-row k-${it.action}${rowCls(it)}`, title: tip(it), 'data-address': it.address, onclick: () => open(it) },
-      pick ? check(it.address) : null,
+      pick ? check(it.address) : h('span', { class: `pl-sym k-${it.movedFrom && it.action === 'noop' ? 'create' : it.importing !== undefined && it.action === 'noop' ? 'read' : it.action}`, text: sym }),
       h('span', { class: 'name', text: it.title }), it.pulled ? h('span', { class: 'pl-dep', text: 'dep' }) : null,
       it.importing !== undefined ? h('span', { class: 'pl-tag imp', text: 'import' }) : null, detail,
-      it.loc ? h('span', { class: 'loc', text: it.loc }) : null,
-      h('span', { class: 'sym', text: it.movedFrom && it.action === 'noop' ? '→' : it.importing !== undefined && it.action === 'noop' ? '↓' : SYM[it.action] }));
+      it.loc ? h('span', { class: 'loc', text: it.loc }) : null);
   }
 
   /** Changed outside Terraform: what drifted; the plan below says what Terraform will do about it. */
@@ -364,9 +365,14 @@
     return h('footer', { class: 'pl-foot' }, applyBar, h('div', { class: 'gl-btn-pair' }, pair), note ? h('div', { class: 'note', text: note }) : null);
   }
 
+  /** Rows slide in when a new plan arrives — not on every repaint (the view is redrawn every minute for the age). */
+  let lastPlan = '';
   function render() {
     const m = model;
     if (!m) return;
+    const planKey = m.state === 'ready' ? `${m.title}|${m.sub.split(' · ')[0]}|${m.strip.join('')}|${m.attention.length}|${m.unchanged}` : '';
+    app.classList.toggle('fresh', !!planKey && planKey !== lastPlan);
+    lastPlan = planKey || lastPlan;
     const kids = [header(m)];
     if (m.error) kids.push(h('div', { class: 'pl-line err' }, icon('error'), h('span', { text: m.error })));
     kids.push(h('div', { class: 'pl-body' }, settingsOpen ? settingsPage(m) : m.state === 'empty' ? empty(m) : changes(m)));
@@ -374,6 +380,26 @@
     const y = document.body.scrollTop;
     app.replaceChildren(...kids);
     document.body.scrollTop = y;
+    if (app.classList.contains('fresh')) arrive();
+  }
+
+  /** A new plan: blocks slide in one after another and the KPI numbers count up. */
+  function arrive() {
+    document.querySelectorAll('.pl-body > .pl-orow, .pl-body > .pl-box, .pl-body > .pl-moves, .pl-body > .pl-discreet, .pl-body .pl-orow, .pl-body .pl-box')
+      .forEach((el, i) => el.style.setProperty('--i', String(Math.min(i, 12))));
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    for (const b of document.querySelectorAll('.pl-kpi b')) {
+      const end = Number(b.textContent);
+      if (!(end > 1)) continue;
+      const t0 = performance.now();
+      const tick = (t) => {
+        const k = Math.min(1, (t - t0) / 650);
+        b.textContent = String(Math.round(end * (1 - (1 - k) ** 3)));
+        if (k < 1 && b.isConnected) requestAnimationFrame(tick);
+      };
+      b.textContent = '0';
+      requestAnimationFrame(tick);
+    }
   }
 
   function reveal(address) {

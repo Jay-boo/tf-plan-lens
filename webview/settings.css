@@ -1,31 +1,33 @@
-/* Plan Lens settings in an editor tab: the settings on the left, a live preview of the sidebar on the right. */
+/* Plan Lens settings in an editor tab, set like a page: a masthead, ruled sections, a live preview of the sidebar. */
 body.settings { padding: 0; overflow: auto; }
-body.settings #app { display: block; max-width: 1060px; min-height: 0; margin: 0 auto; padding: 28px 28px 48px; }
-.ps-top { display: flex; align-items: center; gap: 14px; padding-bottom: 18px; margin-bottom: 22px; border-bottom: 1px solid var(--pl-line); position: relative; }
-.ps-top::after { content: ''; position: absolute; left: 0; bottom: -1px; width: 140px; height: 2px; background: var(--pl-grad); }
-.ps-top h1 { margin: 0 0 2px; font-size: 20px; font-weight: 700; letter-spacing: 0.01em; color: var(--gl-fg); }
-.ps-top .help { font-size: 12px; color: var(--gl-muted); }
-.ps-top > button { flex: none; gap: 6px; height: 28px; padding: 0 10px; border: 1px solid var(--pl-line); border-radius: var(--pl-r); }
-.ps-logo { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: calc(var(--pl-r) * 2); color: #fff; background: var(--pl-grad); }
-.ps-logo .codicon { font-size: 20px; }
-.ps-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 28px; align-items: start; }
+body.settings #app { display: block; max-width: 1060px; min-height: 0; margin: 0 auto; padding: 36px 32px 56px; }
+.ps-top { position: relative; display: flex; align-items: flex-end; gap: 16px; padding: 14px 0 18px; margin-bottom: 30px; border-bottom: 1px solid var(--pl-rule); }
+/* The kicker rule, as in the sidebar. */
+.ps-top::before { content: ''; position: absolute; left: 0; top: 0; width: 28px; height: 3px; background: var(--pl-grad); }
+.ps-top h1 { margin: 0 0 4px; font-size: 26px; font-weight: 650; letter-spacing: -0.015em; line-height: 1.15; color: var(--gl-fg); }
+.ps-top .help { font-size: 12.5px; color: var(--gl-muted); }
+.ps-top > button { flex: none; gap: 6px; height: 28px; padding: 0 12px; color: var(--gl-fg); border: 1px solid var(--pl-rule); border-radius: var(--pl-r); }
+.ps-logo { display: none; }
+.ps-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 44px; align-items: start; }
 @media (max-width: 860px) { .ps-grid { grid-template-columns: minmax(0, 1fr); } }
-.ps-main .pl-set-card { margin-bottom: 14px; padding: 8px 16px 6px; }
-.ps-main .pl-set-row { padding: 12px 0; }
-.ps-main .pl-set-row .txt { flex-basis: 260px; }
-.ps-side { position: sticky; top: 20px; }
-.ps-side-title { margin: 0 0 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--gl-muted); }
-.ps-hint { margin-top: 8px; font-size: 11.5px; color: var(--gl-faint); }
+.ps-main .pl-set-card { margin-bottom: 34px; }
+.ps-main .pl-set-row { padding: 14px 0; }
+.ps-main .pl-set-row .txt { flex-basis: 260px; gap: 3px; }
+.ps-main .pl-set-row .lbl { font-weight: 600; }
+.ps-main .pl-set-row .help { font-size: 12px; line-height: 1.5; }
+.ps-side { position: sticky; top: 24px; }
+.ps-side-title { margin: 0 0 10px; padding-bottom: 8px; font-size: 10.5px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gl-muted); border-bottom: 1px solid var(--pl-rule); }
+.ps-hint { margin-top: 10px; font-size: 11.5px; color: var(--gl-faint); }
 /* The miniature sidebar: planView.css draws it; here only its frame. */
-.ps-preview { position: relative; overflow: hidden; border: 1px solid var(--pl-line); border-radius: calc(var(--pl-r) + 2px); background: var(--gl-bg); box-shadow: 0 12px 32px -16px rgba(0, 0, 0, .55); }
+.ps-preview { position: relative; overflow: hidden; border: 1px solid var(--pl-line); border-radius: var(--pl-r); background: var(--vscode-sideBar-background, var(--gl-bg)); }
 .ps-preview .pl-head { position: relative; }
 .ps-preview .pl-foot { position: static; }
-.ps-preview .pl-body { padding-bottom: 8px; }
-/* Accent swatches. */
-.ps-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
-.ps-swatch { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; width: 92px; height: auto; padding: 8px; font: inherit; font-size: 12px; text-align: left; color: var(--gl-fg); background: transparent; border: 1px solid var(--pl-line); border-radius: var(--pl-r); }
-.ps-swatch > i { display: block; width: 100%; height: 16px; border-radius: calc(var(--pl-r) * 0.7); background: var(--gl-line-strong); }
+.ps-preview .pl-body { padding-bottom: 10px; }
+/* Accent swatches: a strip of colour over a name; the chosen one is underlined in ink. */
+.ps-swatches { display: flex; flex-wrap: wrap; gap: 14px; }
+.ps-swatch { display: flex; flex-direction: column; align-items: stretch; gap: 7px; width: 78px; height: auto; padding: 0 0 6px; font: inherit; font-size: 12px; text-align: left; color: var(--gl-muted); background: transparent; border: none; border-bottom: 2px solid transparent; border-radius: 0; }
+.ps-swatch > i { display: block; width: 100%; height: 22px; border-radius: var(--pl-r); background: var(--gl-line-strong); }
 .ps-swatch.mono > i { background: var(--gl-accent); }
-.ps-swatch:hover { border-color: color-mix(in srgb, var(--gl-fg) 30%, transparent); }
-.ps-swatch.on { border-color: var(--gl-accent); box-shadow: 0 0 0 1px var(--gl-accent); }
+.ps-swatch:hover { color: var(--gl-fg); background: transparent; }
+.ps-swatch.on { color: var(--gl-fg); font-weight: 600; border-bottom-color: var(--gl-fg); }
 .pl-input.bad { outline: 1px solid var(--gl-err); }

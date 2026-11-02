@@ -242,170 +242,248 @@ body.plan { --gl-bg: var(--vscode-sideBar-background, var(--vscode-editor-backgr
 .pl-input:focus { outline: 1px solid var(--gl-accent); outline-offset: -1px; }
 
 /* =====================================================================================================================
-   Look: native and sharp, after GitLens, Thunder Client and Augment — 2–4px corners, crisp 1px lines, uppercase
-   section heads, an accent bar on what needs a look, squared action badges — with one signature gradient
-   (violet → blue → cyan) and motion where it means something: a new plan counts in, bars grow, rows slide in.
+   Look: Editorial. Character from type and composition, like a well-set page: large tabular numerals, confident
+   headings, hairline rules, deliberate spacing, a neutral palette. Colour means something: the action colours mark
+   what a change does; the accent marks identity in three precise places only (the kicker rule over the title,
+   the primary button, the selected state). No glows, no washes; the accent gradient appears once, small.
    ===================================================================================================================== */
 
 :root {
   --pl-g1: #8b5cf6;
   --pl-g2: #3b82f6;
   --pl-g3: #06b6d4;
-  --pl-grad: linear-gradient(90deg, var(--pl-g1), var(--pl-g2), var(--pl-g3), var(--pl-g1));
+  --pl-grad: linear-gradient(90deg, var(--pl-g1), var(--pl-g2), var(--pl-g3));
+  /* The accent as one solid ink: the first stop, deepened a little so white text sits well on it. */
+  --pl-ink: color-mix(in srgb, var(--pl-g1) 84%, #000);
+  --pl-ink-hover: color-mix(in srgb, var(--pl-g1) 72%, #000);
+  --pl-shade: rgba(0, 0, 0, .16);
+  --pl-shade-hover: rgba(0, 0, 0, .28);
   --pl-r: 3px;
-  --pl-line: color-mix(in srgb, var(--gl-fg) 12%, transparent);
+  --pl-line: var(--vscode-contrastBorder, color-mix(in srgb, var(--gl-fg) 13%, transparent));
+  --pl-rule: var(--vscode-contrastBorder, color-mix(in srgb, var(--gl-fg) 28%, transparent));
+  --pl-pad: 14px;
+  --pl-ease: cubic-bezier(.2, .7, .2, 1);
 }
+.vscode-light { --pl-ink: color-mix(in srgb, var(--pl-g1) 90%, #000); --pl-shade: rgba(0, 0, 0, .1); --pl-shade-hover: rgba(0, 0, 0, .22); }
 body.plan { font-size: 13px; }
 
-/* Header: a flat KPI panel under a flowing gradient edge. */
-.pl-head { margin: 0; padding: 12px 10px 12px 14px; border: none; border-bottom: 1px solid var(--pl-line); border-radius: 0;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--pl-g1) 5%, var(--gl-bg)), var(--gl-bg) 85%);
-  box-shadow: none; }
-.pl-head::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--pl-grad); background-size: 300% 100%; }
-@keyframes pl-flow { to { background-position: 300% 0; } }
+/* ---------- masthead ---------- */
+
+.pl-head { margin: 0; padding: 16px 10px 14px var(--pl-pad); border: none; border-bottom: 1px solid var(--pl-line); border-radius: 0; background: var(--gl-bg); box-shadow: none; }
+/* The kicker: one short accent rule over the title — the only gradient in the view. */
+.pl-head::before { content: ''; position: absolute; left: var(--pl-pad); top: 0; width: 28px; height: 3px; background: var(--pl-grad); background-size: 200% 100%; }
+@keyframes pl-flow { from { background-position: 0 0; } to { background-position: 200% 0; } }
 .pl-head .top { min-height: 26px; }
-.pl-env { height: 26px; gap: 7px; font-size: 14px; font-weight: 700; letter-spacing: 0.01em; }
-.pl-env .codicon { font-size: 15px; color: var(--pl-g2); }
-.pl-kpis { display: flex; flex-wrap: wrap; gap: 0; margin: 12px 0 0; border: 1px solid var(--pl-line); border-radius: var(--pl-r); background: color-mix(in srgb, var(--gl-bg) 70%, transparent); }
-.pl-kpi { display: flex; flex: 1 1 56px; flex-direction: column; gap: 1px; min-width: 56px; padding: 6px 10px 7px; border-left: 1px solid var(--pl-line); }
-.pl-kpi:first-child { border-left: none; }
-.pl-kpi b { font: 700 20px/1.1 var(--gl-mono); color: var(--c); font-variant-numeric: tabular-nums; }
-.pl-kpi span { font-size: 9.5px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--gl-muted); }
+.pl-env { height: 26px; gap: 7px; font-size: 15px; font-weight: 650; letter-spacing: -0.005em; }
+.pl-env > .codicon:first-child { font-size: 14px; color: var(--gl-faint); }
+.pl-env > .codicon:last-child { color: var(--gl-faint); }
+.pl-state.ok { color: var(--gl-faint); }
+.pl-head button.icon { color: var(--gl-faint); }
+.pl-head button.icon:hover { color: var(--gl-fg); }
+
+/* KPI figures: big tabular numerals in the action's colour, a small-caps label, hairline column rules (Swiss). */
+.pl-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(58px, 1fr)); gap: 12px 12px; margin: 14px 4px 0 0; }
+.pl-kpi { display: flex; flex-direction: column; gap: 5px; min-width: 0; padding: 8px 0 0; border-top: 1px solid var(--pl-rule); }
+.pl-kpi b { font: 400 28px/0.95 var(--gl-font); letter-spacing: -0.02em; color: var(--c); font-variant-numeric: tabular-nums lining-nums; }
+.pl-kpi span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gl-muted); }
+.pl-kpi.none { grid-column: 1 / -1; }
 .pl-kpi.none { flex-direction: row; align-items: center; gap: 8px; }
-.pl-kpi.none .codicon { font-size: 18px; color: var(--c); }
-.pl-kpi.none span { font-size: 11px; }
-.pl-meta { gap: 6px; margin: 9px 6px 0 1px; font-size: 11.5px; color: var(--gl-faint); }
-.pl-meta > .codicon { flex: none; font-size: 12px; }
-/* Bar strip: one bar per change, the riskier the taller. */
-.pl-strip { display: flex; align-items: flex-end; gap: 2px; height: 24px; margin: 11px 2px 0 1px; }
-.pl-strip > i { flex: 1 1 0; max-width: 16px; min-width: 2px; border-radius: 1px; background: linear-gradient(180deg, var(--c), color-mix(in srgb, var(--c) 55%, transparent)); transform-origin: bottom; }
+.pl-kpi.none .codicon { font-size: 16px; color: var(--c); }
+.pl-kpi.none span { font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--gl-fg); }
+.pl-meta { gap: 6px; margin: 14px 6px 0 0; font-size: 11.5px; color: var(--gl-muted); }
+.pl-meta > .codicon { flex: none; font-size: 12px; color: var(--gl-faint); }
+.pl-meta .rest { color: var(--gl-faint); font-variant-numeric: tabular-nums; }
+/* The blast radius: fine ticks, worst first, the riskier the taller — like a typeset chart. */
+.pl-strip { display: flex; align-items: flex-end; gap: 2px; height: 18px; margin: 12px 0 0; padding-bottom: 0; }
+.pl-strip > i { flex: 1 1 0; max-width: 6px; min-width: 2px; background: var(--c); transform-origin: bottom; }
 .pl-strip > i.k-destroy { height: 100%; }
-.pl-strip > i.k-replace { height: 80%; }
-.pl-strip > i.k-update { height: 52%; }
-.pl-strip > i.k-create { height: 36%; }
-/* Planning: the gradient runs through the bar. */
-.pl-split { height: 3px; margin-top: 12px; border-radius: 0; }
-.pl-split.busy > i { width: 45%; background: var(--pl-grad); background-size: 200% 100%; animation: pl-slide 1.1s cubic-bezier(.6, 0, .4, 1) infinite, pl-flow 2s linear infinite; }
-.pl-head .pl-state.ok .codicon { animation: pl-pop .5s cubic-bezier(.3, 1.6, .5, 1) both; }
-@keyframes pl-pop { from { transform: scale(0) rotate(-30deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.pl-strip > i.k-replace { height: 78%; }
+.pl-strip > i.k-update { height: 50%; }
+.pl-strip > i.k-create { height: 32%; }
+.pl-strip > i.k-read, .pl-strip > i.k-forget { height: 24%; }
+/* Planning: a hairline with a quiet ink runner. */
+.pl-split { height: 2px; margin: 14px 6px 0 0; border-radius: 0; background: var(--pl-line); }
+.pl-split.busy > i { width: 30%; background: var(--pl-ink); animation: pl-slide 1.4s var(--pl-ease) infinite; }
+.pl-split.busy.apply > i { background: var(--pl-replace); }
+.pl-tail { border-radius: var(--pl-r); border-color: var(--pl-line); }
+.pl-tail:hover { border-color: var(--pl-rule); }
 
-/* Section heads: small caps, a count, a solid line (GitLens). */
-.pl-body { padding: 0 10px; }
-.pl-body .gl-ck { margin: 18px 0 7px; padding: 0 2px; font-size: 11px; }
-.pl-body .gl-ck::after { display: block; border-top: 1px solid var(--pl-line); }
-.pl-body .gl-ck .name { gap: 6px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gl-muted); }
-.pl-body .gl-ck .name .codicon { font-size: 13px; }
-.pl-body .gl-ck .name .codicon.chev { font-size: 11px; color: var(--gl-faint); }
-.pl-body .gl-ck .name .k-create, .pl-body .gl-ck .name .k-update, .pl-body .gl-ck .name .k-read { color: var(--c); }
-.pl-body .gl-ck .n { order: 2; padding: 0 5px; font: 600 10px/15px var(--gl-mono); color: var(--gl-fg); border-radius: 2px; background: var(--pl-line); }
+/* ---------- section heads: a confident title on a hairline, the count set as a figure ---------- */
+
+.pl-body { padding: 0 10px 0 var(--pl-pad); }
+.pl-body .gl-ck { gap: 7px; min-height: 22px; margin: 22px 0 4px; padding: 0 2px 6px 0; font-size: 12px; border-bottom: 1px solid var(--pl-rule); }
+.pl-body .gl-ck::after { content: ''; flex: 1 1 8px; min-width: 8px; border: none; }
+.pl-body .gl-ck .name { gap: 7px; font-size: 12.5px; font-weight: 600; letter-spacing: 0; color: var(--gl-fg); }
+.pl-body .gl-ck .name .codicon { font-size: 13px; color: var(--gl-faint); }
+.pl-body .gl-ck .name .codicon.chev { order: 3; font-size: 11px; opacity: 0; transition: opacity .15s ease; }
+.pl-body .gl-ck:hover .name .codicon.chev, .pl-body .gl-ck:focus-visible .name .codicon.chev, .pl-body .gl-ck.shut .name .codicon.chev { opacity: 1; }
+.pl-body .gl-ck .name .k-create, .pl-body .gl-ck .name .k-update, .pl-body .gl-ck .name .k-read, .pl-body .gl-ck .name .warn, .pl-body .gl-ck .name .drift { color: var(--c, var(--pl-replace)); }
+.pl-body .gl-ck .name .drift { --c: var(--pl-update); }
+.pl-body .gl-ck .n { order: 2; padding: 0; font: 400 12.5px/1 var(--gl-font); font-variant-numeric: tabular-nums; color: var(--gl-muted); background: none; }
 .pl-body .gl-ck .n::before { content: none; }
+.pl-body .gl-ck.shut { border-bottom-color: var(--pl-line); }
+.pl-body .gl-ck.shut .name { color: var(--gl-muted); }
 
-/* What needs a look: an accent bar, the action as a status, a wash of its colour (GitLens's permission card). */
-.pl-orow { position: relative; min-height: 50px; gap: 10px; margin: 0 0 5px; padding: 9px 10px 9px 13px; border: 1px solid var(--pl-line); border-radius: var(--pl-r);
-  background: linear-gradient(90deg, color-mix(in srgb, var(--c) 8%, transparent), transparent 65%); overflow: hidden;
-  transition: transform .18s cubic-bezier(.2, .8, .3, 1), border-color .18s ease, box-shadow .18s ease, background-color .18s ease; }
-.pl-orow::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--c); transition: width .18s ease, box-shadow .18s ease; }
-/* Hover: the card lifts and glows in its action's colour, its bar widens, a sheen crosses it once, the arrow slides in. */
-.pl-orow::after { content: ''; position: absolute; top: 0; bottom: 0; left: -60%; width: 45%; pointer-events: none;
-  background: linear-gradient(100deg, transparent, color-mix(in srgb, #fff 9%, transparent), transparent); transform: skewX(-18deg); opacity: 0; }
-.pl-orow:hover, .pl-orow:focus-visible { transform: translateY(-1px); border-color: color-mix(in srgb, var(--c) 60%, var(--pl-line));
-  background-color: color-mix(in srgb, var(--c) 5%, transparent);
-  box-shadow: 0 4px 12px -8px color-mix(in srgb, var(--c) 55%, transparent); }
-.pl-orow:hover::before, .pl-orow:focus-visible::before { width: 4px; }
-[data-motion="full"] .pl-orow:hover::before { box-shadow: 0 0 10px 0 var(--c); }
-[data-motion="full"] .pl-orow:hover::after { animation: pl-sheen .7s ease-out both; }
-@keyframes pl-sheen { from { left: -60%; opacity: 1; } to { left: 120%; opacity: 1; } }
-.pl-orow .go { transform: translateX(-4px); opacity: 0; transition: transform .18s ease, opacity .18s ease; }
-.pl-orow:hover .go, .pl-orow:focus-visible .go { visibility: visible; transform: none; opacity: 1; color: var(--c); }
-[data-motion="full"] .pl-orow:hover .pl-verb { box-shadow: 0 0 10px -2px var(--c); }
-.pl-orow:active { transform: translateY(0); transition-duration: .05s; }
-.pl-orow .head { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.pl-orow .name { flex: 1 1 auto; min-width: 0; font-size: 13px; font-weight: 500; }
-.pl-orow .sub { margin-top: 3px; }
-.pl-orow .go { margin-top: 1px; }
-.pl-verb { flex: none; padding: 0 5px; font: 700 9.5px/16px var(--gl-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 55%, transparent); }
-.pl-orow.k-forget .pl-verb, .pl-orow.k-destroy .pl-verb { color: var(--gl-bg); background: var(--c); border-color: var(--c); }
+/* ---------- what needs a look: entries set like an index, a marginal rule in the action's colour ---------- */
 
-/* Every other list: a framed list, a squared action badge in front of each row (Thunder Client's method tags). */
-.pl-box { padding: 2px; border: 1px solid var(--pl-line); border-radius: var(--pl-r); }
-.pl-box .pl-row { min-height: 26px; gap: 8px; padding: 0 8px 0 4px; border-radius: 2px; font-size: 13px; }
-.pl-box .pl-row { position: relative; transition: background-color .15s ease; }
-.pl-box .pl-row:hover { background: color-mix(in srgb, var(--c) 10%, var(--gl-hover)); box-shadow: inset 2px 0 0 var(--c); }
-.pl-box .pl-row:hover .pl-sym { color: var(--gl-bg); background: var(--c); }
-.pl-sym { transition: color .15s ease, background-color .15s ease; }
-.pl-sym { display: inline-flex; flex: none; align-items: center; justify-content: center; min-width: 26px; height: 17px; padding: 0 3px; font: 700 11px var(--gl-mono);
-  color: var(--c); background: color-mix(in srgb, var(--c) 15%, transparent); border-radius: 2px; }
-.pl-box .pl-more { margin: 2px 0 2px 6px; }
-.pl-discreet { border-radius: 2px; }
+.pl-orow { position: relative; min-height: 0; gap: 10px; margin: 0; padding: 10px 6px 10px 12px; border: none; border-bottom: 1px solid var(--pl-line); border-radius: 0; background: transparent; overflow: hidden; transition: background-color .15s ease; }
+.pl-orow::before { content: ''; position: absolute; left: 0; top: 11px; bottom: 11px; width: 2px; background: var(--c); }
+.pl-orow:hover, .pl-orow:focus-visible { background: var(--gl-hover); }
+.pl-orow .go { margin-top: 1px; transform: translateX(-3px); opacity: 0; transition: transform .15s ease, opacity .15s ease; }
+.pl-orow:hover .go, .pl-orow:focus-visible .go { visibility: visible; transform: none; opacity: 1; color: var(--gl-muted); }
+.pl-orow .head { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.pl-orow .name { flex: 1 1 auto; min-width: 0; font-size: 13px; font-weight: 600; }
+.pl-orow .sub { margin-top: 3px; font-size: 12px; line-height: 1.4; }
+/* The action as a status word in small caps; a destroy is the one thing set solid. */
+.pl-verb { flex: none; padding: 0; font: 600 10px/16px var(--gl-font); letter-spacing: 0.12em; text-transform: uppercase; color: var(--c); }
+.pl-orow.k-forget .pl-verb, .pl-orow.k-destroy .pl-verb { padding: 0 6px; color: var(--vscode-editor-background, var(--gl-bg)); background: var(--c); }
+.pl-orow > .codicon.pk { margin-top: 2px; }
 
-/* Refactor: the card that saves the day gets a living border. */
-@property --pl-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
-.pl-moves { position: relative; border: 1px solid transparent; border-radius: 4px;
-  background: linear-gradient(var(--gl-card), var(--gl-card)) padding-box, conic-gradient(from var(--pl-angle), var(--pl-g1), var(--pl-g2), var(--pl-g3), var(--pl-create), var(--pl-g1)) border-box;
-}
-[data-motion="full"] .pl-moves { animation: pl-spin-border 5s linear infinite; }
-@keyframes pl-spin-border { to { --pl-angle: 360deg; } }
-.pl-moves .top b { letter-spacing: 0.01em; }
-.pl-save { border-radius: 2px; }
-.pl-mv { border-radius: var(--pl-r); transition: transform .18s cubic-bezier(.2, .8, .3, 1), box-shadow .18s ease, border-color .18s ease; }
-.pl-mv:hover { transform: translateY(-1px); border-color: color-mix(in srgb, var(--pl-create) 60%, var(--pl-line)); box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--pl-create) 70%, transparent); }
-.pl-tag { border-radius: 2px; }
+/* ---------- every other list: a typeset column, Terraform's own symbol in the gutter ---------- */
 
-/* Bottom: an apply line and the buttons — the primary one carries the gradient. */
-.pl-foot { padding: 10px 10px 10px; border-top: 1px solid var(--pl-line); box-shadow: 0 -12px 12px -4px var(--gl-bg); }
-.pl-applybar { display: flex; width: 100%; height: 32px; justify-content: flex-start; gap: 8px; margin: 0 0 8px; padding: 0 8px 0 10px; font: inherit; font-size: 12.5px; text-align: left;
-  color: var(--gl-fg); background: transparent; border: 1px solid var(--pl-line); border-radius: var(--pl-r); }
-.pl-applybar:hover { background: var(--gl-hover); }
-.pl-applybar > .codicon:first-child { color: var(--gl-muted); }
+.pl-box { padding: 4px 0 0; border: none; }
+.pl-box .pl-row { min-height: 24px; gap: 8px; padding: 0 6px 0 0; border-radius: 0; font-size: 13px; transition: background-color .12s ease; }
+.pl-box .pl-row:hover { background: var(--gl-hover); }
+.pl-sym { display: inline-flex; flex: none; align-items: center; justify-content: flex-start; width: 26px; padding-left: 2px; font: 600 12px var(--gl-mono); color: var(--c); }
+.pl-box .pl-row .dir { font-size: 12px; }
+.pl-box .pl-row .loc { font-variant-numeric: tabular-nums; }
+.pl-box .pl-row .sym { width: 26px; padding-right: 2px; font-weight: 600; }
+.pl-box .pl-more { margin: 2px 0 0 28px; }
+.pl-quiet { margin: 18px 0 0; font-size: 11.5px; color: var(--gl-faint); }
+.pl-discreet { margin: 10px 0 0; padding: 0 2px; height: 26px; color: var(--gl-muted); border-radius: 0; border-bottom: 1px solid var(--pl-line); }
+.pl-discreet:hover { color: var(--gl-fg); background: transparent; }
+.pl-discreet > .codicon:first-child { color: var(--gl-faint); }
+
+/* ---------- refactor: a boxed sidebar story with a create-coloured head rule ---------- */
+
+.pl-moves { position: relative; margin: 20px 0 2px; padding: 10px 0 14px; border: none; border-top: 2px solid var(--pl-create); border-bottom: 1px solid var(--pl-rule); border-radius: 0; background: transparent; }
+.pl-moves .top { padding-right: 2px; }
+.pl-moves .top b { font-size: 13.5px; font-weight: 650; }
+.pl-moves .lead { font-size: 14px; }
+.pl-save { padding: 0; font-size: 12px; color: var(--gl-muted); background: none; border-radius: 0; }
+.pl-moves .pl-save b { font: 400 18px/1 var(--gl-font); font-variant-numeric: tabular-nums; color: var(--pl-create); }
+.pl-moves .why { margin: 8px 0 10px; font-size: 12px; line-height: 1.5; }
+.pl-moves .rows { gap: 0; border-top: 1px solid var(--pl-line); }
+.pl-mv { gap: 10px; padding: 8px 2px 8px 2px; background: transparent; border: none; border-bottom: 1px solid var(--pl-line); border-radius: 0; transition: background-color .12s ease; }
+.pl-mv:hover { background: var(--gl-hover); }
+.pl-mv.on { background: transparent; border-color: var(--pl-line); }
+.pl-mv.on:hover { background: var(--gl-hover); }
+.pl-mv .pk { margin-top: 1px; }
+.pl-mv.on .pk { color: var(--pl-create); }
+.pl-mv .from { color: var(--gl-faint); text-decoration-color: color-mix(in srgb, var(--pl-destroy) 70%, transparent); }
+.pl-mv .to { font-size: 12px; }
+.pl-mv .to .codicon { color: var(--gl-faint); }
+.pl-mv .pct { font: 400 12px var(--gl-font); font-variant-numeric: tabular-nums; color: var(--pl-update); }
+.pl-mv .pct.full { color: var(--gl-muted); }
+.pl-tag { padding: 0; font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; line-height: 14px; color: var(--gl-faint); border: none; border-radius: 0; }
+.pl-tag.amb { color: var(--pl-replace); border: none; }
+.pl-tag.imp { color: var(--pl-read); }
+.pl-dep { padding: 0; font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; border: none; }
+.pl-moves .pl-more { margin: 6px 0 0 2px; }
+.pl-moves .gl-btn-pair { margin-top: 12px; }
+
+/* Targeted plans: a ruled notice, the accent as its margin. */
+.pl-target { margin: 14px 0 2px; padding: 6px 4px 6px 10px; border: none; border-left: 2px solid var(--pl-ink); border-radius: 0; background: transparent; }
+.pl-target > .codicon { color: var(--gl-muted); }
+.pk.on, .pl-orow > .codicon.pk.on { color: var(--pl-ink); }
+.picking.picked { background: color-mix(in srgb, var(--pl-g1) 9%, transparent); }
+
+/* ---------- foot: a ruled colophon and the two buttons ---------- */
+
+.pl-foot { padding: 10px 10px 12px var(--pl-pad); border-top: 1px solid var(--pl-line); box-shadow: none; }
+.pl-applybar { display: flex; width: 100%; height: 28px; justify-content: flex-start; gap: 8px; margin: 0 0 10px; padding: 0 2px; font: inherit; font-size: 12.5px; text-align: left; color: var(--gl-fg); background: transparent; border: none; border-radius: 0; }
+.pl-applybar:hover { background: transparent; }
+.pl-applybar:hover .grow { text-decoration: underline; text-decoration-color: var(--pl-rule); text-underline-offset: 3px; }
+.pl-applybar > .codicon:first-child { color: var(--gl-faint); }
 .pl-applybar .go { color: var(--gl-faint); }
-.pl-pill { flex: none; padding: 0 6px; font: 700 9.5px/16px var(--gl-mono); letter-spacing: 0.08em; text-transform: uppercase; border-radius: 2px; color: var(--gl-muted); background: var(--pl-line); }
-.pl-pill.on { color: #fff; background: var(--pl-grad); background-size: 300% 100%; }
-.pl-foot .gl-btn-pair > button, .pl-moves .gl-btn-pair > button { height: 32px; font-size: 13px; font-weight: 600; border-radius: var(--pl-r); }
-.pl-foot .gl-btn-pair > button.primary, .pl-moves .gl-btn-pair > button.primary { color: #fff; border: none; background: var(--pl-grad); background-size: 300% 100%; background-position: 0 0; transition: background-position .6s ease, box-shadow .2s ease; }
-.pl-foot .gl-btn-pair > button.primary:hover:not(:disabled), .pl-moves .gl-btn-pair > button.primary:hover:not(:disabled) { background-position: 100% 0; box-shadow: 0 0 0 1px color-mix(in srgb, var(--pl-g2) 60%, transparent), 0 4px 16px -4px var(--pl-g2); }
-.pl-foot .gl-btn-pair > button:not(.primary), .pl-moves .gl-btn-pair > button:not(.primary) { color: var(--gl-fg); background: transparent; border: 1px solid var(--pl-line); }
-.pl-foot .gl-btn-pair > button:not(.primary):hover:not(:disabled), .pl-moves .gl-btn-pair > button:not(.primary):hover:not(:disabled) { background: var(--gl-hover); border-color: color-mix(in srgb, var(--gl-fg) 25%, transparent); }
+.pl-pill { flex: none; padding: 0; font: 600 10px/16px var(--gl-font); letter-spacing: 0.12em; text-transform: uppercase; color: var(--gl-muted); background: none; }
+.pl-pill.on { color: var(--pl-create); }
+.pl-pill.on::before { content: '● '; font-size: 8px; vertical-align: 1px; }
+.pl-foot .gl-btn-pair > button, .pl-moves .gl-btn-pair > button { height: 30px; font-size: 12.5px; font-weight: 600; letter-spacing: 0.01em; border-radius: var(--pl-r); }
+/* Primary: the accent's ink, solid. */
+.pl-foot .gl-btn-pair > button.primary, .pl-moves .gl-btn-pair > button.primary, .gl-empty button.primary { color: #fff; background: linear-gradient(var(--pl-g1), var(--pl-g1));
+  border: 1px solid var(--vscode-button-border, transparent); box-shadow: inset 0 0 0 999px var(--pl-shade); transition: box-shadow .15s ease; }
+.pl-foot .gl-btn-pair > button.primary:hover:not(:disabled), .pl-moves .gl-btn-pair > button.primary:hover:not(:disabled), .gl-empty button.primary:hover { box-shadow: inset 0 0 0 999px var(--pl-shade-hover); }
+.pl-foot .gl-btn-pair > button:not(.primary), .pl-moves .gl-btn-pair > button:not(.primary) { color: var(--gl-fg); background: transparent; border: 1px solid var(--pl-rule); transition: border-color .15s ease, background-color .15s ease; }
+.pl-foot .gl-btn-pair > button:not(.primary):hover:not(:disabled), .pl-moves .gl-btn-pair > button:not(.primary):hover:not(:disabled) { background: var(--gl-hover); border-color: var(--gl-muted); }
+.pl-foot .note { margin: 8px 2px 0; }
 
-/* Settings and the empty state follow the same corners. */
-.pl-set-card { border-radius: 4px; background: transparent; border: 1px solid var(--pl-line); }
-.pl-set-group { letter-spacing: 0.09em; }
-.pl-seg, .pl-seg button { border-radius: 2px; }
-.pl-seg button.on { background: var(--pl-grad); background-size: 300% 100%; color: #fff; }
-.pl-switch.on { background: var(--pl-grad); background-size: 300% 100%; }
-.pl-input { border-radius: var(--pl-r); }
-.pl-set-row > button.ghost { border-radius: var(--pl-r); }
-.pl-env-row { border-radius: var(--pl-r); }
-.pl-tile.big { width: 46px; height: 46px; margin: 0 auto 10px; border-radius: calc(var(--pl-r) * 2); color: #fff; background: var(--pl-grad); background-size: 300% 100%; box-shadow: 0 6px 20px -8px var(--pl-g2); }
-[data-motion="full"] .pl-tile.big, [data-motion="full"] .pl-head::before { animation: pl-flow 6s linear infinite; }
+/* ---------- empty state: a title page ---------- */
+
+.pl-body .gl-empty { margin: 10px 0 0; padding: 26px 4px 10px; text-align: left; font-size: 12.5px; }
+.pl-body .gl-empty b { margin: 0 0 4px; font-size: 17px; font-weight: 650; letter-spacing: -0.005em; }
+.pl-body .gl-empty button { margin: 14px 0 0; }
+.pl-tile.big { display: flex; align-items: center; justify-content: flex-start; width: auto; height: auto; margin: 0 0 12px; color: var(--gl-faint); background: none; }
 .pl-tile.big > .codicon { font-size: 22px; }
-.gl-empty > .pl-tile.big { display: flex; align-items: center; justify-content: center; }
-.pl-target { border-radius: var(--pl-r); }
+.pl-env-row { gap: 10px; padding: 0 4px; height: 30px; border: none; border-bottom: 1px solid var(--pl-line); border-radius: 0; }
+.pl-env-row:hover { background: var(--gl-hover); }
+.pl-env-row.cur { border-color: var(--pl-line); }
+.pl-body .pl-env-row > .codicon:first-child { color: var(--gl-faint); }
+.pl-body .pl-env-row.cur > .codicon:first-child { color: var(--pl-ink); }
+.pl-body .pl-env-row:hover .play { color: var(--pl-create); }
+.pl-env-row.cur .grow { font-weight: 600; }
+.pl-src { margin: 14px 0 0; }
 
-/* A new plan arrives: bars grow one after another, rows slide in, numbers count up (planView.js). */
-.fresh .pl-strip > i { animation: pl-grow .5s cubic-bezier(.2, .9, .3, 1.2) both; animation-delay: calc(var(--i, 0) * 18ms); }
+/* ---------- settings controls (also the settings tab) ---------- */
+
+.pl-set-card { padding: 0; background: transparent; border: none; border-radius: 0; }
+.pl-set-group { margin: 0; padding: 0 0 8px; font-size: 10.5px; letter-spacing: 0.12em; color: var(--gl-muted); border-bottom: 1px solid var(--pl-rule); }
+.pl-set-row { border-top: 1px solid var(--pl-line); }
+.pl-set-group + .pl-set-row { border-top: none; }
+.pl-seg { padding: 0; gap: 0; border-radius: var(--pl-r); background: transparent; border: 1px solid var(--pl-rule); overflow: hidden; }
+.pl-seg button { height: 24px; padding: 0 11px; border-radius: 0; border-left: 1px solid var(--pl-line); }
+.pl-seg button:first-child { border-left: none; }
+.pl-seg button.on { color: #fff; background: var(--pl-ink); border-left-color: transparent; }
+.pl-seg button.on + button { border-left-color: transparent; }
+.pl-switch { width: 32px; height: 18px; border-radius: 999px; background: transparent; border: 1px solid var(--pl-rule); }
+.pl-switch > i { top: 3px; left: 3px; width: 10px; height: 10px; background: var(--gl-muted); }
+.pl-switch.on { background: var(--pl-ink); border-color: transparent; }
+.pl-switch.on > i { left: 17px; background: #fff; }
+.pl-switch:hover { filter: none; border-color: var(--gl-muted); }
+.pl-input { border-radius: var(--pl-r); }
+.pl-input:focus { outline-color: var(--pl-ink); }
+.pl-set-row > button.ghost { color: var(--gl-fg); border-color: var(--pl-rule); border-radius: var(--pl-r); }
+
+/* ---------- motion ---------- */
+
+/* Subtle (default): a new plan sets itself in — ticks rise, entries fade up once. Nothing loops. */
+.fresh .pl-strip > i { animation: pl-grow .45s var(--pl-ease) both; animation-delay: calc(var(--i, 0) * 14ms); }
 @keyframes pl-grow { from { transform: scaleY(0); } }
-.fresh .pl-orow, .fresh .pl-box, .fresh .pl-moves, .fresh .pl-discreet { animation: pl-in .38s cubic-bezier(.2, .8, .3, 1) both; animation-delay: calc(var(--i, 0) * 45ms + 120ms); }
-@keyframes pl-in { from { opacity: 0; transform: translateY(6px); } }
-[data-motion="full"] .fresh .pl-moves { animation: pl-in .38s cubic-bezier(.2, .8, .3, 1) both, pl-spin-border 5s linear infinite; }
+.fresh .pl-orow, .fresh .pl-box, .fresh .pl-moves, .fresh .pl-discreet { animation: pl-in .4s var(--pl-ease) both; animation-delay: calc(var(--i, 0) * 40ms + 100ms); }
+@keyframes pl-in { from { opacity: 0; transform: translateY(4px); } }
+.fresh .pl-head::before { animation: pl-draw .6s var(--pl-ease) both; transform-origin: left; }
+@keyframes pl-draw { from { transform: scaleX(0); } }
+/* Full: the kicker rule's gradient drifts slowly; the marginal rules draw in. Still nothing loud. */
+[data-motion="full"] .pl-head::before { animation: pl-flow 8s linear infinite; }
+[data-motion="full"] .fresh .pl-head::before { animation: pl-draw .6s var(--pl-ease) both, pl-flow 8s linear .6s infinite; }
+[data-motion="full"] .fresh .pl-orow::before { animation: pl-draw-y .5s var(--pl-ease) both; animation-delay: calc(var(--i, 0) * 40ms + 260ms); transform-origin: top; }
+@keyframes pl-draw-y { from { transform: scaleY(0); } }
+[data-motion="full"] .pl-orow::before { transition: top .18s var(--pl-ease), bottom .18s var(--pl-ease); }
+[data-motion="full"] .pl-orow:hover::before { top: 0; bottom: 0; }
 
 /* Mono accent: the theme's own focus colour, no gradient. */
-[data-accent="mono"] { --pl-g1: var(--gl-accent); --pl-g2: var(--gl-accent); --pl-g3: var(--gl-accent); }
+[data-accent="mono"] { --pl-g1: var(--gl-accent); --pl-g2: var(--gl-accent); --pl-g3: var(--gl-accent); --pl-ink: var(--vscode-button-background, var(--gl-accent)); --pl-ink-hover: var(--vscode-button-hoverBackground, var(--pl-ink)); --pl-shade: transparent; }
+/* High contrast: buttons keep the theme's own look and outline. */
+.vscode-high-contrast .pl-foot .gl-btn-pair > button.primary, .vscode-high-contrast .pl-moves .gl-btn-pair > button.primary { border-color: var(--vscode-contrastBorder, transparent); }
 
-/* Compact: less room around rows and cards. */
-[data-density="compact"] .pl-orow { min-height: 40px; margin-bottom: 3px; padding: 6px 8px 6px 11px; }
+/* Compact: tighter leading, smaller figures. */
+[data-density="compact"] { --pl-pad: 12px; }
+[data-density="compact"] .pl-head { padding-top: 13px; padding-bottom: 10px; }
+[data-density="compact"] .pl-kpis { margin-top: 10px; }
+[data-density="compact"] .pl-kpis { row-gap: 8px; }
+[data-density="compact"] .pl-kpi { padding-top: 6px; }
+[data-density="compact"] .pl-kpi b { font-size: 22px; }
+[data-density="compact"] .pl-meta, [data-density="compact"] .pl-strip { margin-top: 9px; }
+[data-density="compact"] .pl-orow { padding-top: 6px; padding-bottom: 6px; }
+[data-density="compact"] .pl-orow::before { top: 7px; bottom: 7px; }
 [data-density="compact"] .pl-box .pl-row { min-height: 22px; }
-[data-density="compact"] .pl-kpi { padding: 4px 8px 5px; }
-[data-density="compact"] .pl-kpi b { font-size: 17px; }
-[data-density="compact"] .pl-body .gl-ck { margin: 12px 0 5px; }
-[data-density="compact"] .pl-head { padding: 9px 8px 9px 12px; }
-
-/* Badges follow the corners, a little tighter. */
-.pl-verb, .pl-sym, .pl-pill, .pl-tag, .pl-save, .pl-body .gl-ck .n { border-radius: calc(var(--pl-r) * 0.7); }
+[data-density="compact"] .pl-body .gl-ck { margin: 14px 0 2px; padding-bottom: 4px; }
+[data-density="compact"] .pl-mv { padding-top: 5px; padding-bottom: 5px; }
 
 [data-motion="off"] *, [data-motion="off"] *::before, [data-motion="off"] *::after { animation: none !important; transition: none !important; }
 @media (prefers-reduced-motion: reduce) {
-  .pl-head::before, .pl-moves, .pl-tile.big, .pl-split.busy > i { animation: none; }
-  .fresh .pl-strip > i, .fresh .pl-orow, .fresh .pl-box, .fresh .pl-discreet, .fresh .pl-moves, .pl-head .pl-state.ok .codicon { animation: none; }
-  .pl-orow, .pl-orow:hover, .pl-orow:focus-visible, .pl-mv, .pl-mv:hover { transition: none; transform: none; }
-  .pl-orow:hover::after { animation: none; }
+  .pl-head::before, .pl-split.busy > i, .fresh .pl-head::before, .fresh .pl-strip > i, .fresh .pl-orow, .fresh .pl-orow::before, .fresh .pl-box,
+  .fresh .pl-discreet, .fresh .pl-moves, [data-motion="full"] .pl-head::before, [data-motion="full"] .fresh .pl-orow::before { animation: none !important; }
+  .pl-split.busy > i { width: 100%; }
+  .pl-orow, .pl-orow .go, .pl-orow::before, .pl-mv, .pl-box .pl-row { transition: none; }
 }

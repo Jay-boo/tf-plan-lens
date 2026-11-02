@@ -40,7 +40,7 @@ export const SETTINGS: SettingDef[] = [
     options: [{ value: 'sharp', label: 'Sharp' }, { value: 'soft', label: 'Soft' }, { value: 'round', label: 'Round' }] },
   { key: 'style.density', group: 'Appearance', label: 'Density', help: 'Room around rows and cards.', type: 'choice', default: 'comfortable',
     options: [{ value: 'compact', label: 'Compact' }, { value: 'comfortable', label: 'Comfortable' }] },
-  { key: 'style.motion', group: 'Appearance', label: 'Motion', help: 'Subtle: a new plan slides in, nothing loops. Full: a flowing header line, a living refactor border, a sheen on hover. Off: still.', type: 'choice', default: 'subtle',
+  { key: 'style.motion', group: 'Appearance', label: 'Motion', help: 'Subtle: a new plan slides in, nothing loops. Full: the header rule drifts slowly, rules draw in, hovered entries extend their mark. Off: still.', type: 'choice', default: 'subtle',
     options: [{ value: 'subtle', label: 'Subtle' }, { value: 'full', label: 'Full' }, { value: 'off', label: 'Off' }] },
   { key: 'sidebar.drift', group: 'Sidebar', label: 'Changed outside Terraform', help: 'Drift since the last apply. Discreet: one faint line you can open.', type: 'visibility', default: 'discreet' },
   { key: 'sidebar.imports', group: 'Sidebar', label: 'Imports', help: 'Objects import blocks bring under Terraform.', type: 'visibility', default: 'shown' },

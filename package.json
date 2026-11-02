@@ -506,7 +506,7 @@
             "off"
           ],
           "default": "subtle",
-          "markdownDescription": "`subtle`: a new plan slides in, nothing loops. `full`: a flowing header line, a living refactor border, a sheen on hover. `off`: still (also when the system asks for reduced motion)."
+          "markdownDescription": "`subtle`: a new plan slides in, nothing loops. `full`: the header rule drifts slowly, rules draw in, hovered entries extend their mark. `off`: still (also when the system asks for reduced motion)."
         }
       }
     }

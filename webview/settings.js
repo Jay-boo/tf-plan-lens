@@ -29,7 +29,30 @@
     render();
   }
 
-  const ACCENTS = { aurora: ['#8b5cf6', '#3b82f6', '#06b6d4'], sunset: ['#f43f5e', '#f97316', '#f59e0b'], forest: ['#10b981', '#14b8a6', '#06b6d4'], terraform: ['#7b42bc', '#5c4ee5', '#a87ff0'] };
+  const ACCENTS = { aurora: ['#8b5cf6', '#3b82f6', '#06b6d4'], sunset: ['#ea6b3d', '#f08049', '#f49a62'], forest: ['#0f9f87', '#14b8a6', '#0ea5b5'], terraform: ['#5c4ee5', '#7b42bc', '#9d5ccf'] };
+  /** Hue (0–360) and saturation of a colour as the browser resolves it (hex, or a theme variable through a probe). */
+  function hsOf(css) {
+    const probe = document.body.appendChild(document.createElement('i'));
+    probe.style.color = css;
+    const rgb = (getComputedStyle(probe).color.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+    probe.remove();
+    const [r, g, b] = rgb.map((x) => x / 255), max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+    const hue = !d ? 0 : max === r ? ((g - b) / d + 6) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    return { h: hue * 60, s: max ? d / max : 0 };
+  }
+  /** Custom accents: the action whose colour a stop could be taken for (hue within 12°), so colour keeps its meaning. */
+  function clash(colors) {
+    for (const c of colors || []) {
+      const a = hsOf(c);
+      if (a.s < 0.25) continue;
+      for (const k of ['create', 'update', 'replace', 'destroy', 'read']) {
+        const b = hsOf(`var(--pl-${k})`);
+        const dh = Math.abs(a.h - b.h);
+        if (Math.min(dh, 360 - dh) < 12) return `${c} reads like the ${k} colour: a different hue keeps actions and accent apart.`;
+      }
+    }
+    return '';
+  }
   const parseColors = (s) => {
     const p = String(s).split(',').map((x) => x.trim()).filter(Boolean);
     return p.length >= 2 && p.length <= 3 && p.every((x) => /^#[0-9a-f]{6}$/i.test(x)) ? p : undefined;
@@ -73,8 +96,10 @@
   function settingRow(s) {
     // Custom colours only matter with the Custom accent.
     if (s.key === 'style.customColors' && value(model.settings.find((x) => x.key === 'style.accent')) !== 'custom') return null;
+    const warn = s.key === 'style.customColors' ? clash(parseColors(value(s))) : '';
     return h('div', { class: `pl-set-row t-${s.type}` },
-      h('div', { class: 'txt' }, h('span', { class: 'lbl', text: s.label }), h('span', { class: 'help', text: s.help + (s.workspace ? ' Saved for this workspace.' : '') })),
+      h('div', { class: 'txt' }, h('span', { class: 'lbl', text: s.label }), h('span', { class: 'help', text: s.help + (s.workspace ? ' Saved for this workspace.' : '') }),
+        warn ? h('span', { class: 'help warn' }, icon('warning'), h('span', { text: ` ${warn}` })) : null),
       control(s));
   }
 
@@ -88,7 +113,7 @@
     root.setProperty('--pl-r', `${st.radius}px`);
     document.body.dataset.accent = st.colors ? 'gradient' : 'mono';
     const box = h('div', { class: 'ps-preview', 'data-density': st.density, 'data-motion': st.motion });
-    const kpi = (k, n, label) => h('div', { class: `pl-kpi k-${k}` }, h('b', { text: String(n) }), h('span', { text: label }));
+    const kpi = (k, n, label) => h('div', { class: `pl-kpi k-${k}${n === 3 ? ' most' : ''}` }, h('b', { text: String(n) }), h('span', { text: label }));
     const strip = ['destroy', 'replace', 'update', 'update', 'update', 'create', 'create'];
     box.append(
       h('header', { class: 'pl-head' },
@@ -97,9 +122,9 @@
         h('div', { class: 'pl-strip' }, strip.map((a) => h('i', { class: `k-${a}` })))),
       h('div', { class: 'pl-body' },
         h('div', { class: 'gl-ck' }, h('span', { class: 'name' }, icon('chevron-down', 'chev'), icon('warning', 'warn'), 'Needs a look'), h('span', { class: 'n', text: '2' })),
-        h('div', { class: 'gl-orow pl-orow k-replace' }, h('div', { class: 'grow' }, h('div', { class: 'head' }, h('span', { class: 'name', text: 'aws_dynamodb_table.orders' }), h('span', { class: 'pl-verb k-replace', text: 'replace' })),
+        h('div', { class: 'gl-orow pl-orow k-replace' }, h('div', { class: 'grow' }, h('div', { class: 'head' }, h('span', { class: 'name', text: 'aws_dynamodb_table.orders' }), h('span', { class: 'pl-verb k-replace' }, h('span', { class: 'vs', text: '-/+' }), 'replace')),
           h('div', { class: 'sub' }, h('span', {}, 'forced by ', h('span', { class: 'mono hl', text: 'hash_key' }))))),
-        h('div', { class: 'gl-orow pl-orow k-destroy' }, h('div', { class: 'grow' }, h('div', { class: 'head' }, h('span', { class: 'name', text: 'aws_iam_role.worker' }), h('span', { class: 'pl-verb k-destroy', text: 'destroy' })),
+        h('div', { class: 'gl-orow pl-orow k-destroy' }, h('div', { class: 'grow' }, h('div', { class: 'head' }, h('span', { class: 'name', text: 'aws_iam_role.worker' }), h('span', { class: 'pl-verb k-destroy' }, h('span', { class: 'vs', text: '−' }), 'destroy')),
           h('div', { class: 'sub' }, h('span', { text: 'removed from code' })))),
         h('div', { class: 'gl-ck' }, h('span', { class: 'name' }, icon('chevron-down', 'chev'), icon('edit', 'k-update'), 'Updates'), h('span', { class: 'n', text: '3' })),
         h('div', { class: 'pl-box' }, ['aws_sqs_queue.orders', 'aws_s3_bucket.assets', 'aws_ssm_parameter.replicas'].map((n) =>

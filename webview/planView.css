@@ -269,15 +269,15 @@ body.plan { font-size: 13px; }
 
 /* ---------- masthead ---------- */
 
-.pl-head { margin: 0; padding: 16px 10px 14px var(--pl-pad); border: none; border-bottom: 1px solid var(--pl-line); border-radius: 0; background: var(--gl-bg); box-shadow: none; }
-/* The kicker: one short accent rule over the title — the only gradient in the view. */
-.pl-head::before { content: ''; position: absolute; left: var(--pl-pad); top: 0; width: 28px; height: 3px; background: var(--pl-grad); background-size: 200% 100%; }
+.pl-head { margin: 0; padding: 20px 10px 14px var(--pl-pad); border: none; border-bottom: 1px solid var(--pl-line); border-radius: 0; background: var(--gl-bg); box-shadow: none; }
+/* The kicker: one short accent rule set over the title, like a section mark. */
+.pl-head::before { content: ''; position: absolute; left: var(--pl-pad); top: 10px; width: 28px; height: 3px; border-radius: calc(var(--pl-r) * 0.3); background: var(--pl-grad); background-size: 200% 100%; }
 @keyframes pl-flow { from { background-position: 0 0; } to { background-position: 200% 0; } }
 .pl-head .top { min-height: 26px; }
 .pl-env { height: 26px; gap: 7px; font-size: 15px; font-weight: 650; letter-spacing: -0.005em; }
 .pl-env > .codicon:first-child { font-size: 14px; color: var(--gl-faint); }
 .pl-env > .codicon:last-child { color: var(--gl-faint); }
-.pl-state.ok { color: var(--gl-faint); }
+.pl-state.ok { color: var(--pl-create); }
 .pl-head button.icon { color: var(--gl-faint); }
 .pl-head button.icon:hover { color: var(--gl-fg); }
 
@@ -287,6 +287,8 @@ body.plan { font-size: 13px; }
 .pl-kpi b { font: 400 28px/0.95 var(--gl-font); letter-spacing: -0.02em; color: var(--c); font-variant-numeric: tabular-nums lining-nums; }
 .pl-kpi span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gl-muted); }
 .pl-kpi.none { grid-column: 1 / -1; }
+/* The largest bucket carries the accent on its rule. */
+.pl-kpi.most { border-top: 2px solid var(--pl-g1); padding-top: 7px; }
 .pl-kpi.none { flex-direction: row; align-items: center; gap: 8px; }
 .pl-kpi.none .codicon { font-size: 16px; color: var(--c); }
 .pl-kpi.none span { font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--gl-fg); }
@@ -295,7 +297,9 @@ body.plan { font-size: 13px; }
 .pl-meta .rest { color: var(--gl-faint); font-variant-numeric: tabular-nums; }
 /* The blast radius: fine ticks, worst first, the riskier the taller — like a typeset chart. */
 .pl-strip { display: flex; align-items: flex-end; gap: 2px; height: 18px; margin: 12px 0 0; padding-bottom: 0; }
-.pl-strip > i { flex: 1 1 0; max-width: 6px; min-width: 2px; background: var(--c); transform-origin: bottom; }
+.pl-strip > i { flex: 1 1 0; max-width: 6px; min-width: 2px; border-radius: calc(var(--pl-r) * 0.3) calc(var(--pl-r) * 0.3) 0 0; background: var(--c); transform-origin: bottom; }
+/* Two specks say nothing the counts don't: the strip shows from three changes. */
+.pl-strip:not(:has(> i:nth-child(3))) { display: none; }
 .pl-strip > i.k-destroy { height: 100%; }
 .pl-strip > i.k-replace { height: 78%; }
 .pl-strip > i.k-update { height: 50%; }
@@ -327,28 +331,36 @@ body.plan { font-size: 13px; }
 /* ---------- what needs a look: entries set like an index, a marginal rule in the action's colour ---------- */
 
 .pl-orow { position: relative; min-height: 0; gap: 10px; margin: 0; padding: 10px 6px 10px 12px; border: none; border-bottom: 1px solid var(--pl-line); border-radius: 0; background: transparent; overflow: hidden; transition: background-color .15s ease; }
-.pl-orow::before { content: ''; position: absolute; left: 0; top: 11px; bottom: 11px; width: 2px; background: var(--c); }
+.pl-orow::before { content: ''; position: absolute; left: 0; top: 11px; bottom: 11px; width: 2px; border-radius: max(0px, calc((var(--pl-r) - 3px) / 3.5)); background: var(--c); }
 .pl-orow:hover, .pl-orow:focus-visible { background: var(--gl-hover); }
 .pl-orow .go { margin-top: 1px; transform: translateX(-3px); opacity: 0; transition: transform .15s ease, opacity .15s ease; }
 .pl-orow:hover .go, .pl-orow:focus-visible .go { visibility: visible; transform: none; opacity: 1; color: var(--gl-muted); }
 .pl-orow .head { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
-.pl-orow .name { flex: 1 1 auto; min-width: 0; font-size: 13px; font-weight: 600; }
+.pl-orow .name { flex: 1 1 auto; min-width: 0; font: 500 12.5px/18px var(--gl-mono); }
 .pl-orow .sub { margin-top: 3px; font-size: 12px; line-height: 1.4; }
 /* The action as a status word in small caps; a destroy is the one thing set solid. */
-.pl-verb { flex: none; padding: 0; font: 600 10px/16px var(--gl-font); letter-spacing: 0.12em; text-transform: uppercase; color: var(--c); }
-.pl-orow.k-forget .pl-verb, .pl-orow.k-destroy .pl-verb { padding: 0 6px; color: var(--vscode-editor-background, var(--gl-bg)); background: var(--c); }
+/* Tags on one fixed column: Terraform's symbol, then the action in small caps; destroy and forget are set solid. */
+.pl-verb { flex: none; width: 100px; padding: 0 6px; overflow: hidden; white-space: nowrap; font: 600 10px/17px var(--gl-font); letter-spacing: 0.12em; text-transform: uppercase; color: var(--c); border-radius: calc(var(--pl-r) * 0.6); }
+.pl-verb .vs { margin-right: 0.5em; font: 600 11px/17px var(--gl-mono); letter-spacing: 0; }
+.pl-orow.k-forget .pl-verb, .pl-orow.k-destroy .pl-verb { color: var(--vscode-editor-background, var(--gl-bg)); background: var(--c); }
 .pl-orow > .codicon.pk { margin-top: 2px; }
 
 /* ---------- every other list: a typeset column, Terraform's own symbol in the gutter ---------- */
 
 .pl-box { padding: 4px 0 0; border: none; }
-.pl-box .pl-row { min-height: 24px; gap: 8px; padding: 0 6px 0 0; border-radius: 0; font-size: 13px; transition: background-color .12s ease; }
+.pl-box { container-type: inline-size; }
+.pl-box .pl-row { align-items: baseline; min-height: 0; gap: 8px; padding: 4px 6px 4px 2px; border-radius: 0; font-size: 12.5px; line-height: 16px; transition: background-color .12s ease; }
+.pl-box .pl-row .name { font: 500 12.5px/16px var(--gl-mono); }
+.pl-box .pl-row > * { align-self: baseline; }
+.pl-box .pl-row .pk { align-self: center; }
+/* Narrow: the location goes before the name is cut. */
+@container (max-width: 290px) { .pl-box .pl-row .loc { display: none; } }
 .pl-box .pl-row:hover { background: var(--gl-hover); }
-.pl-sym { display: inline-flex; flex: none; align-items: center; justify-content: flex-start; width: 26px; padding-left: 2px; font: 600 12px var(--gl-mono); color: var(--c); }
+.pl-sym { flex: none; min-width: 14px; font: 600 12px/16px var(--gl-mono); color: var(--c); }
+.pl-row .codicon.pl-sym { font-size: 12px; line-height: 16px; vertical-align: 0; }
 .pl-box .pl-row .dir { font-size: 12px; }
 .pl-box .pl-row .loc { font-variant-numeric: tabular-nums; }
-.pl-box .pl-row .sym { width: 26px; padding-right: 2px; font-weight: 600; }
-.pl-box .pl-more { margin: 2px 0 0 28px; }
+.pl-box .pl-more { margin: 2px 0 0 24px; }
 .pl-quiet { margin: 18px 0 0; font-size: 11.5px; color: var(--gl-faint); }
 .pl-discreet { margin: 10px 0 0; padding: 0 2px; height: 26px; color: var(--gl-muted); border-radius: 0; border-bottom: 1px solid var(--pl-line); }
 .pl-discreet:hover { color: var(--gl-fg); background: transparent; }
@@ -371,11 +383,11 @@ body.plan { font-size: 13px; }
 .pl-mv .pk { margin-top: 1px; }
 .pl-mv.on .pk { color: var(--pl-create); }
 .pl-mv .from { color: var(--gl-faint); text-decoration-color: color-mix(in srgb, var(--pl-destroy) 70%, transparent); }
-.pl-mv .to { font-size: 12px; }
+.pl-mv .to { font-size: 12px; font-weight: 500; }
 .pl-mv .to .codicon { color: var(--gl-faint); }
 .pl-mv .pct { font: 400 12px var(--gl-font); font-variant-numeric: tabular-nums; color: var(--pl-update); }
 .pl-mv .pct.full { color: var(--gl-muted); }
-.pl-tag { padding: 0; font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; line-height: 14px; color: var(--gl-faint); border: none; border-radius: 0; }
+.pl-tag { padding: 0; font-size: 10px; border-radius: calc(var(--pl-r) * 0.6); font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; line-height: 14px; color: var(--gl-faint); border: none; }
 .pl-tag.amb { color: var(--pl-replace); border: none; }
 .pl-tag.imp { color: var(--pl-read); }
 .pl-dep { padding: 0; font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; border: none; }
@@ -391,6 +403,9 @@ body.plan { font-size: 13px; }
 /* ---------- foot: a ruled colophon and the two buttons ---------- */
 
 .pl-foot { padding: 10px 10px 12px var(--pl-pad); border-top: 1px solid var(--pl-line); box-shadow: none; }
+/* Where the list meets the foot, it fades out instead of stopping mid-row; the body ends with room to clear it. */
+.pl-foot::before { content: ''; position: absolute; left: 0; right: 8px; top: -15px; height: 14px; pointer-events: none; background: linear-gradient(to bottom, transparent, var(--gl-bg)); }
+.pl-body { padding-bottom: 18px; }
 .pl-applybar { display: flex; width: 100%; height: 28px; justify-content: flex-start; gap: 8px; margin: 0 0 10px; padding: 0 2px; font: inherit; font-size: 12.5px; text-align: left; color: var(--gl-fg); background: transparent; border: none; border-radius: 0; }
 .pl-applybar:hover { background: transparent; }
 .pl-applybar:hover .grow { text-decoration: underline; text-decoration-color: var(--pl-rule); text-underline-offset: 3px; }
@@ -401,7 +416,7 @@ body.plan { font-size: 13px; }
 .pl-pill.on::before { content: '● '; font-size: 8px; vertical-align: 1px; }
 .pl-foot .gl-btn-pair > button, .pl-moves .gl-btn-pair > button { height: 30px; font-size: 12.5px; font-weight: 600; letter-spacing: 0.01em; border-radius: var(--pl-r); }
 /* Primary: the accent's ink, solid. */
-.pl-foot .gl-btn-pair > button.primary, .pl-moves .gl-btn-pair > button.primary, .gl-empty button.primary { color: #fff; background: linear-gradient(var(--pl-g1), var(--pl-g1));
+.pl-foot .gl-btn-pair > button.primary, .pl-moves .gl-btn-pair > button.primary, .gl-empty button.primary { color: #fff; background: linear-gradient(90deg, var(--pl-g1), var(--pl-g2));
   border: 1px solid var(--vscode-button-border, transparent); box-shadow: inset 0 0 0 999px var(--pl-shade); transition: box-shadow .15s ease; }
 .pl-foot .gl-btn-pair > button.primary:hover:not(:disabled), .pl-moves .gl-btn-pair > button.primary:hover:not(:disabled), .gl-empty button.primary:hover { box-shadow: inset 0 0 0 999px var(--pl-shade-hover); }
 .pl-foot .gl-btn-pair > button:not(.primary), .pl-moves .gl-btn-pair > button:not(.primary) { color: var(--gl-fg); background: transparent; border: 1px solid var(--pl-rule); transition: border-color .15s ease, background-color .15s ease; }
@@ -419,7 +434,8 @@ body.plan { font-size: 13px; }
 .pl-env-row:hover { background: var(--gl-hover); }
 .pl-env-row.cur { border-color: var(--pl-line); }
 .pl-body .pl-env-row > .codicon:first-child { color: var(--gl-faint); }
-.pl-body .pl-env-row.cur > .codicon:first-child { color: var(--pl-ink); }
+.pl-body .pl-env-row.cur > .codicon.glyph { color: var(--pl-g1); }
+.pl-body .pl-env-row.cur { box-shadow: inset 2px 0 0 var(--pl-g1); }
 .pl-body .pl-env-row:hover .play { color: var(--pl-create); }
 .pl-env-row.cur .grow { font-weight: 600; }
 .pl-src { margin: 14px 0 0; }
@@ -443,6 +459,28 @@ body.plan { font-size: 13px; }
 .pl-input { border-radius: var(--pl-r); }
 .pl-input:focus { outline-color: var(--pl-ink); }
 .pl-set-row > button.ghost { color: var(--gl-fg); border-color: var(--pl-rule); border-radius: var(--pl-r); }
+
+/* ---------- the accent marks focus and selection; narrow widths; light-theme ink ---------- */
+
+.pl-row .pl-sym.sym { width: auto; text-align: left; }
+.pl-orow.flash, .pl-row.flash { outline: none; background: var(--gl-hover); box-shadow: inset 2px 0 0 var(--pl-g1); }
+.pl-orow:focus-visible, .pl-box .pl-row:focus-visible, .pl-mv:focus-visible, .pl-env-row:focus-visible { outline: 1px solid var(--pl-g1); outline-offset: -1px; }
+.pl-box .pl-row.picked { box-shadow: inset 2px 0 0 var(--pl-g1); }
+.pl-orow.picked::before { background: var(--pl-g1); }
+
+/* Narrow sidebars: four counts sit two by two; the title keeps its room (load and clear are in the view's menu too). */
+@media (max-width: 300px) {
+  .pl-kpis:has(> .pl-kpi:nth-child(4):last-child) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pl-head button.icon[aria-label="Load a plan file"], .pl-head button.icon[aria-label="Clear plan"] { display: none; }
+  .pl-verb { width: auto; padding-right: 6px; }
+}
+
+/* Light themes: the warm action colours and the light numerals sit near the contrast floor — set them a shade darker. */
+.vscode-light .pl-kpi b { font-weight: 500; color: color-mix(in srgb, var(--c) 86%, #000); }
+.vscode-light .pl-verb:not(.k-destroy):not(.k-forget), .vscode-light .pl-tag.amb, .vscode-light .pl-moves .why .amb, .vscode-light .pl-mv .pct { font-weight: 700; color: color-mix(in srgb, var(--c, var(--pl-replace)) 84%, #000); }
+.vscode-light .pl-tag.amb, .vscode-light .pl-moves .why .amb { --c: var(--pl-replace); }
+.vscode-light .pl-mv .pct { --c: var(--pl-update); }
+.vscode-light .pl-mv .pct.full { color: var(--gl-muted); font-weight: 400; }
 
 /* ---------- motion ---------- */
 
@@ -476,7 +514,13 @@ body.plan { font-size: 13px; }
 [data-density="compact"] .pl-meta, [data-density="compact"] .pl-strip { margin-top: 9px; }
 [data-density="compact"] .pl-orow { padding-top: 6px; padding-bottom: 6px; }
 [data-density="compact"] .pl-orow::before { top: 7px; bottom: 7px; }
-[data-density="compact"] .pl-box .pl-row { min-height: 22px; }
+[data-density="compact"] .pl-box .pl-row { padding-top: 2px; padding-bottom: 2px; font-size: 12px; }
+[data-density="compact"] .pl-box .pl-row .name, [data-density="compact"] .pl-orow .name { font-size: 12px; }
+[data-density="compact"] .pl-orow .sub { margin-top: 1px; font-size: 11.5px; }
+[data-density="compact"] .pl-body .gl-ck .name, [data-density="compact"] .pl-body .gl-ck .n { font-size: 12px; }
+[data-density="compact"] .pl-env { font-size: 14px; }
+[data-density="compact"] .pl-foot .gl-btn-pair > button { height: 26px; }
+[data-density="compact"] .pl-applybar { height: 24px; margin-bottom: 6px; }
 [data-density="compact"] .pl-body .gl-ck { margin: 14px 0 2px; padding-bottom: 4px; }
 [data-density="compact"] .pl-mv { padding-top: 5px; padding-bottom: 5px; }
 

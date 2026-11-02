@@ -70,6 +70,17 @@ for (const theme of Object.keys(themes)) {
       }
       if (name !== 'large') await page.screenshot({ path: join(root, `out-render/${name}-${theme}-${width}.png`), fullPage: true });
     }
+    // The look's knobs (accent × corners × density) on one plan: knob-<accent>-<corners>-<density>.png.
+    if (theme !== 'hc' && width === 360) {
+      const knobs = [['aurora', 'sharp', 'comfortable'], ['sunset', 'round', 'compact'], ['forest', 'soft', 'comfortable'], ['terraform', 'round', 'comfortable'], ['mono', 'sharp', 'compact']];
+      const stops = { aurora: ['#8b5cf6', '#3b82f6', '#06b6d4'], sunset: ['#ea6b3d', '#f08049', '#f49a62'], forest: ['#0f9f87', '#14b8a6', '#0ea5b5'], terraform: ['#5c4ee5', '#7b42bc', '#9d5ccf'] };
+      for (const [accent, corners, density] of knobs) {
+        const style = { colors: stops[accent], radius: { sharp: 3, soft: 6, round: 10 }[corners], density, motion: 'subtle' };
+        await page.evaluate((m) => window.postMessage({ type: 'model', model: m }, '*'), { ...fixtures.ready, style });
+        await page.waitForTimeout(120);
+        await page.screenshot({ path: join(root, `out-render/knob-${accent}-${corners}-${density}-${theme}.png`) });
+      }
+    }
     // Pick mode: pick a module and a resource, check the overflow, and that Plan posts the targets.
     await page.evaluate((m) => { window.__posted = []; window.postMessage({ type: 'model', model: m }, '*'); }, fixtures.apply);
     await page.waitForTimeout(120);
@@ -113,7 +124,7 @@ for (const theme of Object.keys(themes)) {
     // The preview follows the pick at once.
     // The preview's primary button really is drawn with the picked gradient (not only the variable set).
     const bg = await page.evaluate(() => getComputedStyle(document.querySelector('.ps-preview .pl-foot button.primary')).backgroundImage);
-    if (!/244, 63, 94|f43f5e/i.test(bg)) { failures++; console.log(`PREVIEW ${theme} ${width}: button ${bg.slice(0, 80)}`); }
+    if (!/234, 107, 61|ea6b3d/i.test(bg)) { failures++; console.log(`PREVIEW ${theme} ${width}: button ${bg.slice(0, 80)}`); }
     if (width === 1100) await page.screenshot({ path: join(root, `out-render/settings-sunset-${theme}.png`), fullPage: true });
     await page.close();
   }

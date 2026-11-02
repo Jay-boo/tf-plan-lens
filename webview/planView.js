@@ -5,6 +5,8 @@
   const ICON = { create: 'add', update: 'edit', replace: 'sync', destroy: 'trash', forget: 'trash', read: 'eye' };
   // Terraform's own plan symbols.
   const SYM = { create: '+', update: '~', replace: '-/+', destroy: '-', forget: '-', read: '<=' };
+  // The same symbols in the action tags, with a true minus.
+  const VSYM = { ...SYM, destroy: '−', forget: '−' };
   const MAX_UPDATES = 15;
   const state = Object.assign({ shut: {}, peek: {} }, vscode.getState() || {});
   state.peek = state.peek || {};
@@ -69,9 +71,13 @@
     if (m.state === 'ready' || (running && m.sub)) {
       // KPI cells: what the plan does, a big number per action.
       const stats = h('div', { class: 'pl-kpis' });
+      const most = Math.max(0, ...['create', 'update', 'replace', 'destroy', 'import'].map((a) => m.counts[a] || 0));
+      let marked = false;
       for (const a of ['create', 'update', 'replace', 'destroy', 'import']) {
         if (!m.counts[a]) continue;
-        stats.append(h('div', { class: `pl-kpi k-${a === 'import' ? 'read' : a}`, title: `${m.counts[a]} to ${a}` },
+        const top = !marked && m.counts[a] === most;
+        marked = marked || top;
+        stats.append(h('div', { class: `pl-kpi k-${a === 'import' ? 'read' : a}${top ? ' most' : ''}`, title: `${m.counts[a]} to ${a}` },
           h('b', { text: String(m.counts[a]) }), h('span', { text: a })));
       }
       if (!stats.childElementCount) stats.append(h('div', { class: 'pl-kpi none k-create' }, icon('pass'), h('span', { text: 'no changes' })));
@@ -148,7 +154,7 @@
     else if (it.module) sub.append(h('span', { class: 'faint', text: it.module }));
     return h('button', { class: `gl-orow pl-orow k-${it.action}${rowCls(it)}`, title: tip(it), 'data-address': it.address, onclick: () => open(it) },
       pick ? check(it.address) : null,
-      h('div', { class: 'grow' }, h('div', { class: 'head' }, h('span', { class: 'name', text: it.title }), h('span', { class: `pl-verb k-${it.action}`, text: it.action })), sub),
+      h('div', { class: 'grow' }, h('div', { class: 'head' }, h('span', { class: 'name', text: it.title }), h('span', { class: `pl-verb k-${it.action}` }, h('span', { class: 'vs', text: VSYM[it.action] || '' }), it.action)), sub),
       pick ? null : icon(it.orphan ? 'copy' : 'go-to-file', 'go'));
   }
 
@@ -225,8 +231,8 @@
   /** Changed outside Terraform: what drifted; the plan below says what Terraform will do about it. */
   function driftRow(it) {
     return h('button', { class: `pl-row k-drift`, title: `${it.address}\nChanged outside Terraform since the last apply${it.loc ? `\n${it.loc}` : ''}`, 'data-address': `drift:${it.address}`, onclick: () => post(it.orphan ? 'copy' : 'open', { address: it.address }) },
-      h('span', { class: 'name', text: it.title }), h('span', { class: `dir${it.action === 'destroy' ? '' : ' mono'}`, text: it.sub[0] || '' }),
-      it.loc ? h('span', { class: 'loc', text: it.loc }) : null, icon(it.action === 'destroy' ? 'trash' : 'edit', 'sym'));
+      icon(it.action === 'destroy' ? 'trash' : 'edit', 'sym pl-sym'), h('span', { class: 'name', text: it.title }), h('span', { class: `dir${it.action === 'destroy' ? '' : ' mono'}`, text: it.sub[0] || '' }),
+      it.loc ? h('span', { class: 'loc', text: it.loc }) : null);
   }
 
   /** An output the plan changes: before → after, never a sensitive value. */
@@ -234,8 +240,7 @@
     const val = o.sensitive ? '(sensitive)' : o.action === 'destroy' ? o.before : o.unknown ? '(known after apply)' : o.action === 'update' && o.before ? `${o.before} → ${o.after}` : o.after;
     const k = o.action;
     return h('div', { class: `pl-row pl-out k-${k}`, title: `output.${o.name}\n${val}` },
-      h('span', { class: 'name', text: o.name }), h('span', { class: 'dir mono', text: val }),
-      h('span', { class: 'sym', text: SYM[k] }));
+      h('span', { class: `pl-sym k-${k}`, text: SYM[k] }), h('span', { class: 'name', text: o.name }), h('span', { class: 'dir mono', text: val }));
   }
 
   /** A targeted plan's banner: what it is limited to, and the way back to a full plan. */
@@ -295,7 +300,7 @@
     if (m.envs.length) {
       kids.push(...section('envs', 'Environments', m.envs.length, '', '', () => h('div', {},
         m.envs.map((e) => h('button', { class: `gl-orow pl-env-row${e === m.env ? ' cur' : ''}`, title: `Plan ${e}`, onclick: () => post('run', { env: e }) },
-          icon('server-environment'), h('span', { class: 'grow ell', text: e }), icon('play', 'play'))))));
+          icon('server-environment', 'glyph'), h('span', { class: 'grow ell', text: e }), icon('play', 'play'))))));
     }
     kids.push(h('div', { class: 'pl-src' }, icon('folder'), h('span', { class: 'grow ell', title: m.envFolder, text: m.envFolder }),
       h('button', { class: 'ghost', title: 'Change the environments folder', onclick: () => post('envFolder') }, 'Change')));

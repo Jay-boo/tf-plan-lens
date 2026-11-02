@@ -29,5 +29,9 @@ body.settings #app { display: block; max-width: 1060px; min-height: 0; margin: 0
 .ps-swatch > i { display: block; width: 100%; height: 22px; border-radius: var(--pl-r); background: var(--gl-line-strong); }
 .ps-swatch.mono > i { background: var(--gl-accent); }
 .ps-swatch:hover { color: var(--gl-fg); background: transparent; }
-.ps-swatch.on { color: var(--gl-fg); font-weight: 600; border-bottom-color: var(--gl-fg); }
+.ps-swatch.on { color: var(--gl-fg); font-weight: 600; border-bottom-color: var(--pl-g1); }
+.ps-swatch.on.mono { border-bottom-color: var(--gl-accent); }
+/* Custom colours that read like an action colour. */
+.pl-set-row .help.warn { color: var(--pl-replace); }
+.pl-set-row .help.warn .codicon { font-size: 12px; }
 .pl-input.bad { outline: 1px solid var(--gl-err); }

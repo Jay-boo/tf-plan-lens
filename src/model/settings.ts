@@ -21,9 +21,9 @@ export interface SettingDef {
 /** Accent gradients (three stops); mono follows the theme's own accent, custom the user's colours. */
 export const ACCENTS: Record<string, string[]> = {
   aurora: ['#8b5cf6', '#3b82f6', '#06b6d4'],
-  sunset: ['#f43f5e', '#f97316', '#f59e0b'],
-  forest: ['#10b981', '#14b8a6', '#06b6d4'],
-  terraform: ['#7b42bc', '#5c4ee5', '#a87ff0'],
+  sunset: ['#ea6b3d', '#f08049', '#f49a62'],
+  forest: ['#0f9f87', '#14b8a6', '#0ea5b5'],
+  terraform: ['#5c4ee5', '#7b42bc', '#9d5ccf'],
 };
 
 /** The 2–3 hex colours of a custom accent (`#8b5cf6, #06b6d4`), or undefined when they don't parse. */

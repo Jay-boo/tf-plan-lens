@@ -58,16 +58,59 @@
     return p.length >= 2 && p.length <= 3 && p.every((x) => /^#[0-9a-f]{6}$/i.test(x)) ? p : undefined;
   };
   /** The look the preview gets, from the values on screen (same rules as styleOf in settings.ts). */
+  /** The environment the preview is shown as (its own accent, if it has one); undefined: the global accent. */
+  let previewEnv;
+  const isAccent = (v) => typeof v === 'string' && (v in ACCENTS || v === 'mono' || !!parseColors(v));
+  /** Same rule as envAccentOf in settings.ts: the exact name (any case), then the first matching pattern. */
+  function envAccentOf(env, map) {
+    const entries = Object.entries(map || {}).filter(([, v]) => isAccent(v));
+    const exact = entries.find(([k]) => k.toLowerCase() === env.toLowerCase());
+    if (exact) return exact[1];
+    const glob = (k) => new RegExp(`^${k.split('*').map((p) => p.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*')}$`, 'i');
+    const hit = entries.find(([k]) => k.includes('*') && glob(k).test(env));
+    return hit && hit[1];
+  }
   function look() {
     const get = (k) => value(model.settings.find((s) => s.key === k));
-    const accent = get('style.accent');
-    let colors = accent === 'mono' ? undefined : accent === 'custom' ? parseColors(get('style.customColors')) || ACCENTS.aurora : ACCENTS[accent] || ACCENTS.aurora;
+    const own = previewEnv ? envAccentOf(previewEnv, get('style.envAccents')) : undefined;
+    const accent = own || get('style.accent');
+    let colors = accent === 'mono' ? undefined : accent === 'custom' ? parseColors(get('style.customColors')) || ACCENTS.aurora : ACCENTS[accent] || parseColors(accent) || ACCENTS.aurora;
     if (colors && colors.length === 2) colors = [colors[0], colors[1], colors[0]];
     return { colors, radius: { sharp: 3, soft: 6, round: 10 }[get('style.corners')] || 3, density: get('style.density'), motion: get('style.motion') };
   }
 
+  /** Per environment: each environment with the accents to pick from; Default follows the global accent. */
+  function envAccents(s) {
+    const map = value(s) || {};
+    const envs = model.envs || [];
+    if (!envs.length) return h('span', { class: 'help', text: 'No environment found yet: plan one, or set planLens.style.envAccents in VS Code settings (patterns like *prod* work).' });
+    const options = [['', 'Default'], ['aurora', 'Aurora'], ['sunset', 'Sunset'], ['forest', 'Forest'], ['terraform', 'Terraform'], ['mono', 'Mono']];
+    return h('div', { class: 'ps-envs' }, envs.map((env) => {
+      const exact = Object.keys(map).find((k) => k.toLowerCase() === env.toLowerCase());
+      const current = exact ? map[exact] : '';
+      const viaPattern = !exact && envAccentOf(env, map);
+      const pick = (v) => {
+        const next = { ...map };
+        if (exact) delete next[exact];
+        if (v) next[env] = v;
+        previewEnv = env;
+        set(s, next);
+      };
+      return h('div', { class: `ps-env${previewEnv === env ? ' on' : ''}` },
+        h('button', { class: 'ps-env-name', title: `Preview as ${env}`, onclick: () => { previewEnv = env; render(); } }, icon('server-environment'), h('span', { class: 'ell', text: env })),
+        h('div', { class: 'ps-minis', role: 'radiogroup', 'aria-label': `Accent of ${env}` }, options.map(([v, label]) => {
+          const c = ACCENTS[v];
+          const on = v === current;
+          return h('button', { class: `ps-mini${on ? ' on' : ''}${v === '' ? ' def' : ''}${v === 'mono' ? ' mono' : ''}`, role: 'radio', 'aria-checked': String(on), title: v === '' ? (viaPattern ? `Default (a pattern gives ${viaPattern})` : 'Default: the global accent') : label,
+            style: c ? `background: linear-gradient(90deg, ${c.join(', ')})` : '', onclick: () => pick(v) });
+        })),
+        parseColors(current) ? h('span', { class: 'help mono', text: current }) : null);
+    }));
+  }
+
   function control(s) {
     const v = value(s);
+    if (s.type === 'envAccents') return envAccents(s);
     if (s.key === 'style.accent') {
       return h('div', { class: 'ps-swatches', role: 'radiogroup', 'aria-label': s.label }, s.options.map((o) => {
         const c = o.value === 'custom' ? parseColors(value(model.settings.find((x) => x.key === 'style.customColors'))) : ACCENTS[o.value];
@@ -113,11 +156,12 @@
     root.setProperty('--pl-r', `${st.radius}px`);
     document.body.dataset.accent = st.colors ? 'gradient' : 'mono';
     const box = h('div', { class: 'ps-preview', 'data-density': st.density, 'data-motion': st.motion });
+    const envName = previewEnv || (model.envs && model.envs[0]) || 'prod';
     const kpi = (k, n, label) => h('div', { class: `pl-kpi k-${k}${n === 3 ? ' most' : ''}` }, h('b', { text: String(n) }), h('span', { text: label }));
     const strip = ['destroy', 'replace', 'update', 'update', 'update', 'create', 'create'];
     box.append(
       h('header', { class: 'pl-head' },
-        h('div', { class: 'top' }, h('span', { class: 'pl-env' }, icon('server-environment'), h('span', { class: 'lbl', text: 'prod' })), h('span', { class: 'pl-state ok' }, icon('check')), h('span', { class: 'grow' })),
+        h('div', { class: 'top' }, h('span', { class: 'pl-env' }, icon('server-environment'), h('span', { class: 'lbl', text: envName })), h('span', { class: 'pl-state ok' }, icon('check')), h('span', { class: 'grow' })),
         h('div', { class: 'pl-kpis' }, kpi('create', 2, 'create'), kpi('update', 3, 'update'), kpi('replace', 1, 'replace'), kpi('destroy', 1, 'destroy')),
         h('div', { class: 'pl-strip' }, strip.map((a) => h('i', { class: `k-${a}` })))),
       h('div', { class: 'pl-body' },
@@ -129,8 +173,11 @@
         h('div', { class: 'gl-ck' }, h('span', { class: 'name' }, icon('chevron-down', 'chev'), icon('edit', 'k-update'), 'Updates'), h('span', { class: 'n', text: '3' })),
         h('div', { class: 'pl-box' }, ['aws_sqs_queue.orders', 'aws_s3_bucket.assets', 'aws_ssm_parameter.replicas'].map((n) =>
           h('div', { class: 'pl-row k-update' }, h('span', { class: 'pl-sym k-update', text: '~' }), h('span', { class: 'name', text: n }), h('span', { class: 'dir' }))))),
-      h('footer', { class: 'pl-foot' }, h('div', { class: 'gl-btn-pair' }, h('button', {}, icon('refresh'), h('span', { text: 'Re-plan' })), h('button', { class: 'primary' }, icon('rocket'), h('span', { text: 'Apply prod' })))));
-    return h('aside', { class: 'ps-side' }, h('div', { class: 'ps-side-title', text: 'Preview' }), box, h('div', { class: 'ps-hint', text: 'Hover the cards to see the effect.' }));
+      h('footer', { class: 'pl-foot' }, h('div', { class: 'gl-btn-pair' }, h('button', {}, icon('refresh'), h('span', { text: 'Re-plan' })), h('button', { class: 'primary' }, icon('rocket'), h('span', { text: `Apply ${envName}` })))));
+    // Preview as: the global accent, or one environment's own.
+    const as = (model.envs || []).length ? h('div', { class: 'ps-as' }, h('span', { text: 'as' }),
+      [undefined, ...model.envs].slice(0, 8).map((e) => h('button', { class: previewEnv === e ? 'on' : '', onclick: () => { previewEnv = e; render(); } }, e || 'Global'))) : null;
+    return h('aside', { class: 'ps-side' }, h('div', { class: 'ps-side-title', text: 'Preview' }), as, box, h('div', { class: 'ps-hint', text: 'Hover the cards to see the effect.' }));
   }
 
   function render() {

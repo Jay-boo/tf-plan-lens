@@ -34,8 +34,8 @@ test('the settings page list matches package.json (keys, types, defaults)', asyn
   for (const s of SETTINGS) {
     const p = props[`planLens.${s.key}`];
     assert.ok(p, `planLens.${s.key} missing from package.json`);
-    assert.equal(p.default, s.default, `default of planLens.${s.key}`);
-    assert.equal(p.type, ['visibility', 'choice', 'colors'].includes(s.type) ? 'string' : s.type, `type of planLens.${s.key}`);
+    assert.deepEqual(p.default, s.default, `default of planLens.${s.key}`);
+    assert.equal(p.type, s.type === 'envAccents' ? 'object' : ['visibility', 'choice', 'colors'].includes(s.type) ? 'string' : s.type, `type of planLens.${s.key}`);
     if (s.type === 'choice') assert.deepEqual(p.enum, s.options.map((o) => o.value), `options of planLens.${s.key}`);
     if (s.type === 'visibility') assert.deepEqual(p.enum, ['shown', 'discreet', 'hidden']);
   }
@@ -59,4 +59,23 @@ test('appearance: presets, custom colours, the look the sidebar gets', async () 
   assert.equal(parseColors('#abcdef,#123456,#000000,#ffffff'), undefined);
   assert.equal(validSetting('style.accent', 'neon'), undefined);
   assert.equal(validSetting('style.customColors', ' #AbCdEf ,#123456 ').value, '#AbCdEf, #123456');
+});
+
+test('per-environment accents: exact name, then patterns; invalid values ignored', async () => {
+  const { createRequire } = await import('node:module');
+  const { envAccentOf, styleOf, validSetting } = createRequire(import.meta.url)('../../out-test/model/settings.js');
+  const map = { PROD: 'sunset', '*dev*': 'forest', 'QUAL': '#ff0080, #7928ca', bad: 'neon' };
+  assert.equal(envAccentOf('prod', map), 'sunset');
+  assert.equal(envAccentOf('PROD/dev', map), 'forest');
+  assert.equal(envAccentOf('qual', map), '#ff0080, #7928ca');
+  assert.equal(envAccentOf('bad', map), undefined);
+  assert.equal(envAccentOf('other', map), undefined);
+  const get = (o) => (k) => o[k];
+  assert.deepEqual(styleOf(get({ 'style.envAccents': map }), 'QUAL').colors, ['#ff0080', '#7928ca', '#ff0080']);
+  assert.equal(styleOf(get({ 'style.envAccents': map, 'style.accent': 'forest' }), 'PROD').colors[0], '#ea6b3d');
+  assert.equal(styleOf(get({ 'style.envAccents': map, 'style.accent': 'forest' }), 'other').colors[0], '#0f9f87');
+  assert.equal(styleOf(get({ 'style.envAccents': { prod: 'mono' } }), 'prod').colors, undefined);
+  assert.deepEqual(validSetting('style.envAccents', { PROD: 'sunset', QUAL: '#FF0080,#7928ca' }).value, { PROD: 'sunset', QUAL: '#FF0080, #7928ca' });
+  assert.equal(validSetting('style.envAccents', { PROD: 'neon' }), undefined);
+  assert.equal(validSetting('style.envAccents', ['sunset']), undefined);
 });

@@ -507,6 +507,14 @@
           ],
           "default": "subtle",
           "markdownDescription": "`subtle`: a new plan slides in, nothing loops. `full`: the header rule drifts slowly, rules draw in, hovered entries extend their mark. `off`: still (also when the system asks for reduced motion)."
+        },
+        "planLens.style.envAccents": {
+          "type": "object",
+          "default": {},
+          "additionalProperties": {
+            "type": "string"
+          },
+          "markdownDescription": "An accent per environment, so you always know where you are: environment name or pattern → `aurora`, `sunset`, `forest`, `terraform`, `mono` or 2–3 hex colours. E.g. `{ \"PROD\": \"sunset\", \"*dev*\": \"forest\" }`. Others use `#planLens.style.accent#`."
         }
       }
     }

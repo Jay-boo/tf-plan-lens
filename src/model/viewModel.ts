@@ -91,7 +91,7 @@ export interface ViewModel {
   /** How each optional section shows (settings planLens.sidebar.*). */
   sections: Record<Section, Visibility>;
   /** The settings page: every setting with its current value. */
-  settings: (SettingDef & { value: Visibility | boolean | string })[];
+  settings: (SettingDef & { value: SettingDef['default'] })[];
   /** The look (settings planLens.style.*): accent stops (none: the theme's accent), radius, density, motion. */
   style: ReturnType<typeof styleOf>;
 }
@@ -130,10 +130,12 @@ export function ago(ms: number): string {
 }
 
 /** A setting's value from the options, or its default; a value of the wrong kind falls back to the default too. */
-function setting(o: ViewOptions, key: string): Visibility | boolean | string {
+type SettingValue = SettingDef['default'];
+
+function setting(o: ViewOptions, key: string): SettingValue {
   const def = SETTINGS.find((s) => s.key === key)!;
   const v = o.settings?.[key];
-  return typeof v === typeof def.default && (def.type !== 'visibility' || ['shown', 'discreet', 'hidden'].includes(v as string)) ? (v as Visibility | boolean | string) : def.default;
+  return typeof v === typeof def.default && v !== null && (def.type !== 'visibility' || ['shown', 'discreet', 'hidden'].includes(v as string)) ? (v as SettingValue) : def.default;
 }
 
 function title(c: Change): string {
@@ -209,7 +211,8 @@ export function toViewModel(plan: Plan | undefined, o: ViewOptions): ViewModel {
     tail: o.running ? o.tail ?? [] : [],
     sections: Object.fromEntries(SECTIONS.map((s) => [s, setting(o, `sidebar.${s}`)])) as Record<Section, Visibility>,
     settings: SETTINGS.map((d) => ({ ...d, value: setting(o, d.key) })),
-    style: styleOf((k) => setting(o, k)),
+    // The environment shown (or being run) may have its own accent.
+    style: styleOf((k) => setting(o, k), o.runEnv ?? o.env),
   };
   if (!plan) {
     vm.title = o.env ? `Plan · ${o.env}` : 'No plan yet';

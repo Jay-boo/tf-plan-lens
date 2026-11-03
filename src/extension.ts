@@ -562,7 +562,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
     canApply: !!config().get<boolean>('allowApply') && !!saved && store.plan?.env === saved.env.name,
     applyOff: !config().get<boolean>('allowApply') && !!saved && store.plan?.env === saved.env.name,
   });
-  const settingsPanel = new SettingsPanel(ctx, () => envSource, { envFolder: () => void setEnvFolder(), findWorkspaces: () => void findWorkspaces() });
+  const settingsPanel = new SettingsPanel(ctx, () => envSource, () => envs.map((e) => e.name), { envFolder: () => void setEnvFolder(), findWorkspaces: () => void findWorkspaces() });
   ctx.subscriptions.push(settingsPanel);
   const view = new PlanViewProvider(ctx, store, out, viewInfo, (m: ViewMessage) => {
     switch (m.type) {

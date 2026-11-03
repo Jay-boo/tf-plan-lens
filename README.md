@@ -63,6 +63,14 @@ Once an environment is planned, **saving a file previews just the blocks you edi
 
 `-target` on the edited blocks, `-refresh=false`, `-lock=false`: seconds, not minutes, never blocks a teammate, never applied.
 
+## Always know where you are
+
+Give each environment its own accent — prod in coral, dev in green — and the whole view takes it: the header line, the environment's name, the buttons. Before you hit Apply, you see which environment you are about to change.
+
+<p align="center"><img src="media/readme/look.gif" alt="The settings tab: prod gets the Sunset accent, dev Forest; planning prod turns the sidebar coral" width="100%"></p>
+
+Pick them in the **settings tab** (the gear in the sidebar), with a live preview "as" any environment — or by name or pattern in `settings.json`: `"planLens.style.envAccents": { "PROD": "sunset", "*dev*": "forest" }`.
+
 ---
 
 ## And also
@@ -73,7 +81,7 @@ Once an environment is planned, **saving a file previews just the blocks you edi
 - **Stuck state lock** — shows who holds it and since when, force-unlocks after you confirm.
 - **Expired cloud login** — offers `az login`, `aws sso login` or `gcloud auth application-default login` in a terminal.
 - **Load a plan file** from your CI (`terraform show -json`, or a binary plan).
-- **Settings in an editor tab** (gear in the sidebar), with a live preview: what each sidebar section shows, every feature on or off, and **your look** — accent (Aurora, Sunset, Forest, Terraform, Mono or your own colours), corners, density, motion.
+- **Settings in an editor tab** (gear in the sidebar), with a live preview: what each sidebar section shows, every feature on or off, and **your look** — accent (Aurora, Sunset, Forest, Terraform, Mono or your own colours), an accent per environment, corners, density, motion.
 
 ## Safe by design
 
@@ -111,6 +119,7 @@ All in the settings tab (the gear in the sidebar, or **Plan Lens: Settings**), o
 | `planLens.sidebar.imports` / `.moved` / `.outputs` | `shown` | `shown`, `discreet` or `hidden` |
 | `planLens.allowApply` | `false` | Apply from Plan Lens (per workspace) |
 | `planLens.style.accent` | `aurora` | `aurora`, `sunset`, `forest`, `terraform`, `mono` or `custom` (`planLens.style.customColors`) |
+| `planLens.style.envAccents` | `{}` | An accent per environment (`{ "PROD": "sunset", "*dev*": "forest" }`), so you always know where you are |
 | `planLens.style.corners` / `.density` / `.motion` | `sharp` / `comfortable` / `subtle` | The look of the views |
 | `planLens.terraformPath` | (empty) | `terraform`, else `tofu` when only OpenTofu is installed |
 | `planLens.environmentsFolder` | (empty) | Folder holding the environments |

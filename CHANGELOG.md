@@ -2,6 +2,8 @@
 
 ## 0.4.0
 
+- **An accent per environment** (`planLens.style.envAccents`): prod in coral, dev in teal… so you always know where you are. Pick them in the settings tab (each environment with its swatches; the preview shows it "as" any environment), or by name or pattern (`*prod*`) in settings.json.
+- A signature: the Geist typeface (bundled, SIL OFL) for counts, titles and addresses, the environment's name lit by its accent, a faint light of it behind the counts, and a check that draws itself when a plan lands.
 - **Settings open in an editor tab**, with a live preview of the sidebar, and an **Appearance** section: accent (Aurora, Sunset, Forest, Terraform, Mono or your own colours), corners, density and motion (subtle by default; full adds a flowing header line, a living refactor border and a sheen on hover).
 - **New look** after GitLens and Thunder Client: KPI header, accent bars and status badges on risky changes, squared action badges, a signature gradient; cards lift on hover; a new plan counts in.
 - **Values and completions in module files**: locals, variables, `for_each` and outputs of the modules the root calls show their value for the environment — per instance (`= "10.1.1.0/24"  · subnet["app"] (+2)`), every instance in the hover. Evaluate selection works there too.

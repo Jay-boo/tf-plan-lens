@@ -11,6 +11,7 @@ export class SettingsPanel implements vscode.Disposable {
   constructor(
     private readonly ctx: vscode.ExtensionContext,
     private readonly envFolder: () => string,
+    private readonly envs: () => string[],
     private readonly actions: { envFolder: () => void; findWorkspaces: () => void },
   ) {
     this.subs.push(vscode.workspace.onDidChangeConfiguration((e) => e.affectsConfiguration('planLens') && this.post()));
@@ -54,7 +55,7 @@ export class SettingsPanel implements vscode.Disposable {
     if (!this.panel) return;
     const config = vscode.workspace.getConfiguration('planLens');
     const settings = SETTINGS.map((d) => ({ ...d, value: config.get(d.key, d.default) }));
-    void this.panel.webview.postMessage({ type: 'model', model: { settings, envFolder: this.envFolder() } });
+    void this.panel.webview.postMessage({ type: 'model', model: { settings, envFolder: this.envFolder(), envs: this.envs() } });
   }
 
   dispose(): void {

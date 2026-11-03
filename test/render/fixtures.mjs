@@ -30,7 +30,7 @@ const refactorMoves = [...findMoves(refactorPlan), { id: 'azurerm_subnet.pe>modu
 const richPlan = parsePlan(JSON.parse(readFileSync(new URL('../fixtures/rich-plan.json', import.meta.url), 'utf8')), { env: 'QUAL', source: 'run', loadedAt: 0 });
 
 // The settings tab's model (not a sidebar model): every setting at its default.
-export const settingsPage = { settings: SETTINGS.map((d) => ({ ...d, value: d.default })), envFolder: 'environments/**/terraform.tfvars' };
+export const settingsPage = { settings: SETTINGS.map((d) => ({ ...d, value: d.default })), envFolder: 'environments/**/terraform.tfvars', envs: ['DEV', 'QUAL', 'PROD'] };
 
 export const fixtures = {
   empty: toViewModel(undefined, { ...base, locate }),

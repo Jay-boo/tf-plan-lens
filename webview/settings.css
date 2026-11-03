@@ -35,3 +35,26 @@ body.settings #app { display: block; max-width: 1060px; min-height: 0; margin: 0
 .pl-set-row .help.warn { color: var(--pl-replace); }
 .pl-set-row .help.warn .codicon { font-size: 12px; }
 .pl-input.bad { outline: 1px solid var(--gl-err); }
+
+/* Signature, as in the sidebar: the page title in the display face, lit by the accent's light. */
+body.settings { background: radial-gradient(70% 40% at 0% 0%, color-mix(in srgb, var(--pl-g1) 8%, transparent), transparent 70%), var(--gl-bg); }
+.vscode-high-contrast.settings, body.settings.vscode-high-contrast { background: var(--gl-bg); }
+
+/* Per environment: a row per environment, small accent swatches to pick from. */
+.pl-set-row.t-envAccents { flex-direction: column; align-items: stretch; }
+.ps-main .pl-set-row.t-envAccents .txt { flex-basis: auto; }
+.ps-envs { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+.ps-env { display: flex; align-items: center; gap: 12px; min-height: 30px; padding: 0 6px; border-left: 2px solid transparent; }
+.ps-env.on { border-left-color: var(--pl-g1); background: color-mix(in srgb, var(--gl-fg) 4%, transparent); }
+.ps-env-name { display: flex; flex: 1 1 140px; min-width: 0; height: 26px; gap: 6px; justify-content: flex-start; padding: 0; font: 600 12.5px var(--gl-mono); color: var(--gl-fg); background: transparent; border: none; }
+.ps-env-name .codicon { color: var(--gl-faint); }
+.ps-minis { display: flex; flex: none; gap: 6px; }
+.ps-mini { width: 26px; height: 16px; min-width: 0; padding: 0; border: 1px solid transparent; border-radius: calc(var(--pl-r) * 0.7); background: var(--gl-line-strong); }
+.ps-mini.def { background: repeating-linear-gradient(-45deg, transparent 0 3px, color-mix(in srgb, var(--gl-fg) 22%, transparent) 3px 4px); border-color: var(--pl-line); }
+.ps-mini.mono { background: var(--gl-accent); }
+.ps-mini:hover { transform: translateY(-1px); }
+.ps-mini.on { outline: 2px solid var(--gl-fg); outline-offset: 2px; }
+/* Preview as: the global accent, or an environment's own. */
+.ps-as { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 0 0 8px; font-size: 11.5px; color: var(--gl-faint); }
+.ps-as button { height: 22px; padding: 0 8px; font: 500 11.5px var(--gl-mono); color: var(--gl-muted); background: transparent; border: 1px solid var(--pl-line); border-radius: calc(var(--pl-r) * 0.7); }
+.ps-as button.on { color: var(--gl-fg); border-color: var(--pl-g1); }

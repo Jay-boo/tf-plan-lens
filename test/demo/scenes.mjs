@@ -1,6 +1,6 @@
 // The README scenes. Each starts on a fresh acme-shop (applied on a fresh LocalStack); `setup` prepares what the
 // story does not show (a plan already run, values warmed up), `run` is what is recorded.
-//   node test/demo/record.mjs [plan refactor values preview] | explore
+//   node test/demo/record.mjs [plan refactor values preview look] | explore
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -154,6 +154,44 @@ export const SCENES = {
       await d.key('Control+Home');
       await d.wait(7000);
       await d.hover(line('services = {', 120), 3000);
+      await d.caption();
+    },
+  },
+
+  look: {
+    gif: { fps: 10 },
+    async setup(d) {
+      planEdits();
+      await d.open('main.tf');
+      await planned(d);
+    },
+    async run(d) {
+      await d.caption('Settings in a tab, with a <b>live preview</b>');
+      await d.click('button.icon[title="Settings"]');
+      await d.until('.ps-envs');
+      await d.wait(1200);
+      await d.hover('.ps-swatch[title="Sunset"]', 500);
+      await d.click('.ps-swatch[title="Forest"]');
+      await d.wait(900);
+      await d.click('.ps-swatch[title="Aurora"]');
+      await d.wait(700);
+      await d.caption('An accent <b>per environment</b>: prod in coral…');
+      await d.move('.ps-envs');
+      await d.click('.ps-env:has(.ps-env-name[title="Preview as prod"]) .ps-mini[title="Sunset"]');
+      await d.wait(1800);
+      await d.caption('…dev in green: <b>you always know where you are</b>');
+      await d.click('.ps-env:has(.ps-env-name[title="Preview as dev"]) .ps-mini[title="Forest"]');
+      await d.wait(1800);
+      await d.caption();
+      await d.cmd('View: Close Editor', { typeDelay: 0, pause: 300 });
+      await d.wait(800);
+      await d.caption('Plan prod: the whole view <b>turns coral</b>');
+      await pick(d, 'prod', { show: true });
+      await d.wait(1200);
+      await d.click('.pl-foot button.primary');
+      await d.wait(1500);
+      await d.until('.pl-state.ok');
+      await d.wait(3500);
       await d.caption();
     },
   },

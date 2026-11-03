@@ -126,6 +126,15 @@ for (const theme of Object.keys(themes)) {
     const bg = await page.evaluate(() => getComputedStyle(document.querySelector('.ps-preview .pl-foot button.primary')).backgroundImage);
     if (!/234, 107, 61|ea6b3d/i.test(bg)) { failures++; console.log(`PREVIEW ${theme} ${width}: button ${bg.slice(0, 80)}`); }
     if (width === 1100) await page.screenshot({ path: join(root, `out-render/settings-sunset-${theme}.png`), fullPage: true });
+    // Per environment: PROD gets Sunset; the posted map, and the preview shown as PROD.
+    await page.click('.ps-env:has(.ps-env-name[title="Preview as PROD"]) .ps-mini[title="Sunset"]');
+    const envSet = await page.evaluate(() => window.__posted.at(-1));
+    if (JSON.stringify(envSet) !== JSON.stringify({ type: 'setting', key: 'style.envAccents', value: { PROD: 'sunset' } })) {
+      failures++; console.log(`ENV ACCENT ${theme} ${width}: posted ${JSON.stringify(envSet)}`);
+    }
+    const shownAs = await page.evaluate(() => document.querySelector('.ps-preview .pl-env .lbl')?.textContent);
+    if (shownAs !== 'PROD') { failures++; console.log(`ENV ACCENT ${theme} ${width}: preview shows ${shownAs}`); }
+    if (width === 1100) await page.screenshot({ path: join(root, `out-render/settings-envs-${theme}.png`), fullPage: true });
     await page.close();
   }
 }

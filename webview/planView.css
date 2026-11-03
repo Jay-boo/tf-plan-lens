@@ -531,3 +531,42 @@ body.plan { font-size: 13px; }
   .pl-split.busy > i { width: 100%; }
   .pl-orow, .pl-orow .go, .pl-orow::before, .pl-mv, .pl-box .pl-row { transition: none; }
 }
+
+/* =====================================================================================================================
+   Signature: a typeface with character (Geist and Geist Mono, SIL OFL, bundled in vendor/geist), the environment's
+   name lit by the accent, a faint light of it behind the counts, and a check that draws itself when a plan lands.
+   Prose stays in VS Code's own font, so the view still feels native.
+   ===================================================================================================================== */
+
+@font-face { font-family: 'Geist'; src: url('vendor/geist/Geist-Variable.woff2') format('woff2'); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: 'Geist Mono'; src: url('vendor/geist/GeistMono-Variable.woff2') format('woff2'); font-weight: 100 900; font-display: swap; }
+:root {
+  --pl-display: 'Geist', var(--gl-font);
+  --gl-mono: 'Geist Mono', var(--vscode-editor-font-family, ui-monospace, 'Cascadia Code', monospace);
+}
+
+/* The display face for what is read at a glance: counts, the environment, section and page titles, buttons. */
+.pl-kpi b { font-family: var(--pl-display); font-size: 34px; font-weight: 250; line-height: 0.95; letter-spacing: -0.045em; font-feature-settings: 'tnum', 'ss01'; }
+[data-density="compact"] .pl-kpi b { font-size: 25px; }
+.pl-head { container-type: inline-size; }
+@container (max-width: 300px) { .pl-kpi b { font-size: 28px; } }
+.pl-kpi span, .pl-env, .pl-body .gl-ck .name, .pl-foot button, .pl-moves .top b, .ps-top h1, .pl-set-group, .pl-applybar { font-family: var(--pl-display); }
+.pl-env { font-size: 17px; font-weight: 650; letter-spacing: -0.02em; }
+[data-density="compact"] .pl-env { font-size: 15px; }
+.ps-top h1 { font-weight: 600; letter-spacing: -0.02em; }
+
+/* The environment's name, lit by the accent (plain in high contrast, where clipped gradients read badly). */
+.pl-env .lbl { padding-right: 1px; background: linear-gradient(90deg, var(--pl-g1), var(--pl-g2) 55%, var(--pl-g3)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.pl-env.none .lbl, .vscode-high-contrast .pl-env .lbl { background: none; color: var(--gl-fg); }
+.pl-env.none .lbl { color: var(--gl-muted); }
+
+/* A faint light of the accent behind the counts, from the top-left corner, as if the kicker were lit. */
+.pl-head { background: radial-gradient(120% 95% at 0% 0%, color-mix(in srgb, var(--pl-g1) 16%, transparent), transparent 60%),
+  radial-gradient(80% 70% at 100% 0%, color-mix(in srgb, var(--pl-g3) 7%, transparent), transparent 70%), var(--gl-bg); }
+.vscode-light .pl-head { background: radial-gradient(130% 90% at 0% 0%, color-mix(in srgb, var(--pl-g1) 7%, transparent), transparent 62%), var(--gl-bg); }
+.vscode-high-contrast .pl-head { background: var(--gl-bg); }
+
+/* A plan lands: the check draws itself, left to right. */
+.fresh .pl-state.ok .codicon { animation: pl-tick .5s cubic-bezier(.65, 0, .35, 1) .35s both; }
+@keyframes pl-tick { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@media (prefers-reduced-motion: reduce) { .fresh .pl-state.ok .codicon { animation: none; } }
